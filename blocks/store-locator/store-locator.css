@@ -1034,22 +1034,37 @@
   background: #fff;
 }
 
-/* Info Window Photos - Premium Gallery */
+/* Info Window Photos - Transparent Bubble Carousel */
+.info-photos-container {
+  margin: 0 0 4px;
+  padding: 6px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+  border-radius: 12px;
+}
+
 .info-photos {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  flex-shrink: 0;
+  display: flex;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  height: 140px;
+  background: #000;
+  border-radius: 8px;
+  overflow: auto hidden;
+}
+
+.info-photos::-webkit-scrollbar {
+  display: none;
 }
 
 .info-photo-slide {
-  width: 100%;
-  height: 100%;
+  min-width: 100%;
+  scroll-snap-align: start;
+  overflow: hidden;
+  height: 140px;
+  background: #000;
 }
 
-/* Info Window Photo - Hero Image with Proper Aspect Ratio */
+/* Info Window Photo - Full Resolution */
 .info-photo {
   width: 100%;
   height: 100%;
@@ -1058,9 +1073,38 @@
   margin: 0;
 }
 
+/* Photo Indicators - Inside Bubble */
+.info-photo-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-bottom: 2px;
+}
+
+.info-photo-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #dadce0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.info-photo-dot:hover {
+  background: #bdc1c6;
+  transform: scale(1.2);
+}
+
+.info-photo-dot.active {
+  background: #1a73e8;
+  width: 20px;
+  border-radius: 3px;
+}
+
 /* Info Window Content - Entire Window Scrolls */
 .info-content {
-  padding: 16px;
+  padding: 4px 16px 16px;
   overflow-wrap: break-word;
   background: #fff;
 }
@@ -1120,9 +1164,29 @@
   font-size: 18px;
   font-weight: 600;
   line-height: 1.3;
-  color: #202124;
   overflow-wrap: break-word;
   letter-spacing: -0.01em;
+}
+
+.info-name-link {
+  color: #202124;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  position: relative;
+}
+
+.info-name-link:hover {
+  color: #1a73e8;
+}
+
+.info-name-link:hover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: #1a73e8;
 }
 
 /* Info Window Row - Perfectly Aligned */
@@ -1144,9 +1208,10 @@
 /* Info Window SVG Icons - Premium Styling */
 .info-icon-svg {
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 2px;
   opacity: 0.7;
   transition: opacity 0.2s ease;
+  vertical-align: middle;
 }
 
 .info-row:hover .info-icon-svg {
@@ -1355,6 +1420,42 @@
   box-shadow: 0 2px 4px rgb(0 0 0 / 8%);
 }
 
+/* Links Row - Horizontal Layout */
+.info-links-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.info-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #5f6368;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  flex: 1;
+  justify-content: center;
+}
+
+.info-link:hover {
+  background: #f8f9fa;
+  border-color: #1a73e8;
+  color: #1a73e8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgb(26 115 232 / 15%);
+}
+
+.info-link svg {
+  flex-shrink: 0;
+}
+
 /* ============================================
    REVIEWS SECTION - WORLD-CLASS DESIGN
    ============================================ */
@@ -1403,40 +1504,9 @@
 
 .info-review-author {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-}
-
-.info-review-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
-}
-
-.info-review-avatar-placeholder {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
-  border: 2px solid #fff;
-  box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.info-review-author-info {
-  display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
 }
 
 .info-review-author-name {
@@ -1523,11 +1593,11 @@
 }
 
 .info-hours-dropdown.expanded {
-  max-height: 180px;
+  max-height: 500px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #dadce0;
-  overflow-y: auto;
+  overflow: visible;
   opacity: 1;
   transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease 0.1s;
 }

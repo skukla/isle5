@@ -1446,10 +1446,10 @@ function createInfoWindowContent(store) {
   const statusClass = isOpen ? 'open' : 'closed';
   const hoursText = getTodayHours(store);
 
-  // Build photo HTML
+  // Build photo carousel HTML (max 3 images)
   let photos = [];
   if (Array.isArray(store.photos) && store.photos.length > 0) {
-    photos = store.photos;
+    photos = store.photos.slice(0, 3);
   } else if (store.photo) {
     photos = [store.photo];
   }
@@ -1461,8 +1461,15 @@ function createInfoWindowContent(store) {
       </div>
     `).join('');
     photoHTML = `
-      <div class="info-photos" role="group" aria-label="Photos of ${store.name}">
-        ${photoSlides}
+      <div class="info-photos-container">
+        <div class="info-photos" role="group" aria-label="Photos of ${store.name}">
+          ${photoSlides}
+        </div>
+        ${photos.length > 1 ? `
+          <div class="info-photo-indicators">
+            ${photos.map((_, index) => `<span class="info-photo-dot" data-index="${index}"></span>`).join('')}
+          </div>
+        ` : ''}
       </div>
     `;
   }
@@ -1488,21 +1495,10 @@ function createInfoWindowContent(store) {
       const truncatedText = review.text.length > 150
         ? `${review.text.substring(0, 150)}...`
         : review.text;
-      // Generate avatar HTML with fallback to initial
-      let avatarHTML;
-      if (review.authorPhotoUri) {
-        avatarHTML = `<img src="${review.authorPhotoUri}" alt="${review.author}" class="info-review-avatar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-        <div class="info-review-avatar-placeholder" style="display:none;">${review.author.charAt(0).toUpperCase()}</div>`;
-      } else {
-        const initial = review.author.charAt(0).toUpperCase();
-        avatarHTML = `<div class="info-review-avatar-placeholder">${initial}</div>`;
-      }
-
       return `
         <div class="info-review-card">
           <div class="info-review-header">
             <div class="info-review-author">
-              ${avatarHTML}
               <div class="info-review-author-info">
                 <span class="info-review-author-name">${review.author}</span>
                 <span class="info-review-time">${review.relativeTime}</span>
@@ -1604,13 +1600,25 @@ function createInfoWindowContent(store) {
       `
       : '';
 
-    const websiteHTML = store.contact?.website
+    const linksHTML = (store.contact?.website || store.directionsUrl)
       ? `
-        <div class="info-row info-website-row">
-          <svg class="info-icon-svg" viewBox="0 0 24 24" width="20" height="20">
-            <path fill="#5f6368" d="M12 2a10 10 0 100 20 10 10 0 000-20zm7.93 9h-3.02a15.6 15.6 0 00-1.2-5.1A8.02 8.02 0 0119.93 11zM12 4c1.3 0 2.92 2.25 3.55 5H8.45C9.08 6.25 10.7 4 12 4zM4.07 13h3.02a15.6 15.6 0 001.2 5.1A8.02 8.02 0 014.07 13zM4.07 11A8.02 8.02 0 018.29 5.9 15.6 15.6 0 007.09 11H4.07zm7.93 9c-1.3 0-2.92-2.25-3.55-5h7.1C14.92 17.75 13.3 20 12 20zm3.71-1.9A15.6 15.6 0 0016.91 13h3.02a8.02 8.02 0 01-4.22 5.1z"/>
-          </svg>
-          <a href="${store.contact.website}" target="_blank" rel="noopener noreferrer">Website</a>
+        <div class="info-links-row">
+          ${store.contact?.website ? `
+            <a href="${store.contact.website}" target="_blank" rel="noopener noreferrer" class="info-link">
+              <svg viewBox="0 0 24 24" width="18" height="18">
+                <path fill="currentColor" d="M12 2a10 10 0 100 20 10 10 0 000-20zm7.93 9h-3.02a15.6 15.6 0 00-1.2-5.1A8.02 8.02 0 0119.93 11zM12 4c1.3 0 2.92 2.25 3.55 5H8.45C9.08 6.25 10.7 4 12 4zM4.07 13h3.02a15.6 15.6 0 001.2 5.1A8.02 8.02 0 014.07 13zM4.07 11A8.02 8.02 0 018.29 5.9 15.6 15.6 0 007.09 11H4.07zm7.93 9c-1.3 0-2.92-2.25-3.55-5h7.1C14.92 17.75 13.3 20 12 20zm3.71-1.9A15.6 15.6 0 0016.91 13h3.02a8.02 8.02 0 01-4.22 5.1z"/>
+              </svg>
+              <span>Website</span>
+            </a>
+          ` : ''}
+          ${store.directionsUrl ? `
+            <a href="${store.directionsUrl}" target="_blank" rel="noopener noreferrer" class="info-link">
+              <svg viewBox="0 0 24 24" width="18" height="18">
+                <path fill="currentColor" d="M21.71 11.29l-9-9a.996.996 0 00-1.41 0l-9 9a.996.996 0 000 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 000-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/>
+              </svg>
+              <span>Directions</span>
+            </a>
+          ` : ''}
         </div>
       `
       : '';
@@ -1618,7 +1626,7 @@ function createInfoWindowContent(store) {
     supplementaryHTML = `
       <div class="info-supplementary">
         ${tagsHTML}
-        ${websiteHTML}
+        ${linksHTML}
       </div>
     `;
   }
@@ -1653,7 +1661,9 @@ function createInfoWindowContent(store) {
     <div class="map-info-window">
       ${photoHTML}
       <div class="info-content">
-        <h4 class="info-name">${store.name}</h4>
+        <h4 class="info-name">
+          <a href="${store.directionsUrl || '#'}" target="_blank" rel="noopener noreferrer" class="info-name-link">${store.name}</a>
+        </h4>
         ${ratingHTML}
         ${fullHoursHTML}
         <div class="info-row">
@@ -1743,6 +1753,7 @@ async function initializeMap(container, stores, center, zoomLevel) {
 
         // Wait for InfoWindow to render, then attach event listeners
         google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
+          // Hours dropdown toggle
           const toggleBtn = document.querySelector('[data-toggle-hours]');
           const dropdown = document.querySelector('[data-hours-dropdown]');
 
@@ -1753,6 +1764,37 @@ async function initializeMap(container, stores, center, zoomLevel) {
               toggleBtn.classList.toggle('expanded');
               dropdown.classList.toggle('expanded');
             });
+          }
+
+          // Photo carousel scroll indicators
+          const photosContainer = document.querySelector('.info-photos');
+          const indicators = document.querySelectorAll('.info-photo-dot');
+
+          if (photosContainer && indicators.length > 0) {
+            // Update active indicator on scroll
+            photosContainer.addEventListener('scroll', () => {
+              const { scrollLeft } = photosContainer;
+              const slideWidth = photosContainer.offsetWidth;
+              const activeIndex = Math.round(scrollLeft / slideWidth);
+
+              indicators.forEach((dot, index) => {
+                dot.classList.toggle('active', index === activeIndex);
+              });
+            });
+
+            // Click indicator to scroll to that photo
+            indicators.forEach((dot, index) => {
+              dot.addEventListener('click', () => {
+                const slideWidth = photosContainer.offsetWidth;
+                photosContainer.scrollTo({
+                  left: slideWidth * index,
+                  behavior: 'smooth',
+                });
+              });
+            });
+
+            // Set first indicator as active on load
+            indicators[0]?.classList.add('active');
           }
         });
       });
@@ -1866,10 +1908,10 @@ async function enrichStoreWithPlacesData(store) {
         .filter((type) => !excludedTypes.includes(type))
         .map((type) => type.replace(/_/g, ' ')); // Convert snake_case to readable
 
-      // Prepare photos array
+      // Prepare photos array at high resolution
       let storePhotos = [];
       if (place.photos && place.photos.length > 0) {
-        storePhotos = place.photos.slice(0, 6).map((photo) => photo.getURI({ maxHeight: 240 }));
+        storePhotos = place.photos.slice(0, 6).map((photo) => photo.getURI({ maxHeight: 1200 }));
       } else if (store.photo) {
         storePhotos = [store.photo];
       }
@@ -1921,7 +1963,7 @@ async function enrichStoreWithPlacesData(store) {
           ? store.customServices
           : meaningfulTypes,
         photo: place.photos && place.photos[0]
-          ? place.photos[0].getURI({ maxHeight: 200 })
+          ? place.photos[0].getURI({ maxHeight: 1200 })
           : '',
         photos: storePhotos,
         rating: place.rating || 0,
@@ -1929,6 +1971,8 @@ async function enrichStoreWithPlacesData(store) {
         reviews: storeReviews,
         placeData: place, // Keep full Places API data
         requiresEnrichment: false,
+        // Generate 'Get Directions' URL using Place ID
+        directionsUrl: `https://www.google.com/maps/place/?q=place_id:${store.placeId}`,
       };
 
       console.log(`✅ Enriched store: ${enrichedStore.name} (NEW Places API)`);
