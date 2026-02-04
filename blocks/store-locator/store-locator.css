@@ -543,10 +543,10 @@
   background: #fff;
   border: 1px solid #e5e5e5;
   border-radius: 8px;
-  padding: 18px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
 }
@@ -566,7 +566,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .store-name {
@@ -608,11 +608,11 @@
   color: #dc2626;
 }
 
-/* Distance Badge - Simple */
+/* Distance Badge - Blue Accent to Match Reference */
 .store-distance-badge {
   font-size: 13px;
   font-weight: 500;
-  color: #dc2626;
+  color: #2563eb;
   white-space: nowrap;
 }
 
@@ -622,6 +622,7 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
+  margin-bottom: 2px;
 }
 
 .store-rating .stars {
@@ -641,7 +642,17 @@
   font-size: 13px;
 }
 
-/* Store Address */
+/* Contact Info Container - Groups Address + Phone */
+.store-contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-top: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* Store Address - With Icon */
 .store-address {
   font-style: normal;
   color: #6b7280;
@@ -649,11 +660,29 @@
   line-height: 1.5;
   margin: 0;
   overflow-wrap: break-word;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
 }
 
-/* Store Phone - Simple & Clickable */
+.store-address .address-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+/* Store Phone - With Icon */
 .store-phone {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.store-phone .phone-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  opacity: 0.7;
 }
 
 .store-phone a {
@@ -668,32 +697,49 @@
   text-decoration: underline;
 }
 
-/* Service Badges - Simple Pills */
+/* Details Container - Groups Services + Hours */
+.store-details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 4px;
+}
+
+/* Service Badges - Compact Pills with Subtle Background */
 .store-services {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
 }
 
 .service-badge {
   display: inline-block;
-  padding: 6px 12px;
-  background: #f3f4f6;
+  padding: 4px 10px;
+  background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: #374151;
   white-space: nowrap;
   text-transform: capitalize;
 }
 
-/* Store Hours */
+/* Store Hours - With Icon */
 .store-hours {
-  font-size: 14px;
+  font-size: 13px;
   color: #6b7280;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.store-hours .hours-icon {
+  flex-shrink: 0;
+  font-size: 13px;
+  opacity: 0.7;
 }
 
 /* Status Badge - Enhanced with icons */
@@ -804,23 +850,22 @@
    STORE ACTIONS - ENHANCED BUTTONS
    ============================================ */
 
-/* Store Actions - Beautiful Button Row */
+/* Store Actions - Compact Button Row */
 .store-actions {
   display: flex;
-  gap: 10px;
-  margin-top: var(--spacing-small);
-  padding-top: var(--spacing-small);
-  border-top: 1px solid var(--sl-border-light);
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 0;
   flex-wrap: wrap;
   align-items: stretch;
 }
 
-/* Beautiful Button Base */
+/* Beautiful Button Base - Compact */
 .btn-directions,
 .btn-set-store {
   flex: 1;
-  min-height: 44px;
-  padding: 0 20px;
+  min-height: 40px;
+  padding: 0 18px;
   border-radius: 8px;
   font-weight: 600;
   font-size: 14px;

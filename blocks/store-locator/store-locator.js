@@ -724,40 +724,57 @@ function renderStoreCard(store) {
     card.appendChild(ratingRow);
   }
 
+  // Contact Info Container (Address + Phone grouped)
+  const contactInfo = document.createElement('div');
+  contactInfo.classList.add('store-contact-info');
+
   // Address (from Google Places API formatted_address)
   const address = document.createElement('address');
   address.classList.add('store-address');
-  address.textContent = `${store.address.street}, ${store.address.city}, ${store.address.state} ${store.address.zip}`;
-  card.appendChild(address);
+  address.innerHTML = `<span class="address-icon">📍</span> ${store.address.street}, ${store.address.city}, ${store.address.state} ${store.address.zip}`;
+  contactInfo.appendChild(address);
 
   // Phone number (from Google Places API)
   if (store.contact.phone) {
     const phone = document.createElement('div');
     phone.classList.add('store-phone');
-    phone.innerHTML = `<a href="tel:${store.contact.phone.replace(/\D/g, '')}">${store.contact.phone}</a>`;
-    card.appendChild(phone);
+    phone.innerHTML = `<span class="phone-icon">📞</span> <a href="tel:${store.contact.phone.replace(/\D/g, '')}">${store.contact.phone}</a>`;
+    contactInfo.appendChild(phone);
   }
 
-  // Service tags/badges (from DA.live custom services)
-  if (store.services && store.services.length > 0) {
-    const services = document.createElement('div');
-    services.classList.add('store-services');
-    store.services.slice(0, 3).forEach((service) => {
-      const badge = document.createElement('span');
-      badge.classList.add('service-badge');
-      badge.textContent = service;
-      services.appendChild(badge);
-    });
-    card.appendChild(services);
-  }
+  card.appendChild(contactInfo);
 
-  // Today's hours (from Google Places API)
+  // Details Container (Services + Hours grouped)
+  const hasServices = store.services && store.services.length > 0;
   const hoursText = getTodayHours(store);
-  if (hoursText && hoursText !== 'Hours not available') {
-    const hours = document.createElement('div');
-    hours.classList.add('store-hours');
-    hours.textContent = hoursText;
-    card.appendChild(hours);
+  const hasHours = hoursText && hoursText !== 'Hours not available';
+
+  if (hasServices || hasHours) {
+    const detailsContainer = document.createElement('div');
+    detailsContainer.classList.add('store-details-container');
+
+    // Service tags/badges (from DA.live custom services)
+    if (hasServices) {
+      const services = document.createElement('div');
+      services.classList.add('store-services');
+      store.services.slice(0, 3).forEach((service) => {
+        const badge = document.createElement('span');
+        badge.classList.add('service-badge');
+        badge.textContent = service;
+        services.appendChild(badge);
+      });
+      detailsContainer.appendChild(services);
+    }
+
+    // Today's hours (from Google Places API)
+    if (hasHours) {
+      const hours = document.createElement('div');
+      hours.classList.add('store-hours');
+      hours.innerHTML = `<span class="hours-icon">🕒</span> ${hoursText}`;
+      detailsContainer.appendChild(hours);
+    }
+
+    card.appendChild(detailsContainer);
   }
 
   // Actions
@@ -2031,8 +2048,8 @@ export default async function decorate(block) {
         if (allStores.some((store) => store.requiresEnrichment)) {
           showLoading(listContainer, loadingSpinner);
           allStores = await enrichStoresWithPlacesData(allStores);
-          // Re-render the stores with enriched data (show all stores initially)
-          filteredStores = allStores.slice(0, config.maxResults);
+          // Re-apply filters and sort (this recalculates distances with userLocation)
+          filteredStores = applyFiltersAndSort(allStores, savedServices, savedOpenNow);
           renderStores(filteredStores);
           hideLoading(loadingSpinner);
         }
