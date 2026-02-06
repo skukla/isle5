@@ -38,6 +38,15 @@
       "id": "store-locator",
       "fields": [
         {
+          "component": "text",
+          "valueType": "string",
+          "name": "googleMapsApiKey",
+          "label": "Google Maps API Key",
+          "description": "API key for Maps JavaScript API and Places API (New)",
+          "value": "",
+          "required": false
+        },
+        {
           "component": "select",
           "valueType": "string",
           "name": "defaultView",
@@ -61,27 +70,12 @@
           ]
         },
         {
-          "component": "select",
-          "valueType": "string",
-          "name": "mapProvider",
-          "label": "Map Provider",
-          "description": "Mapping service used by this block",
-          "value": "google",
-          "required": false,
-          "options": [
-            {
-              "name": "Google Maps",
-              "value": "google"
-            }
-          ]
-        },
-        {
           "component": "number",
           "valueType": "number",
           "name": "searchRadius",
-          "label": "Search Radius (miles)",
-          "description": "Radius cap from user location (set 0 for All stores)",
-          "value": 25,
+          "label": "Search Radius",
+          "description": "Default radius (set 0 for All stores)",
+          "value": 0,
           "required": false,
           "validation": {
             "numberMin": 0,
@@ -107,15 +101,6 @@
           "name": "autoDetect",
           "label": "Auto-Detect Location",
           "description": "Automatically use browser geolocation on page load",
-          "value": true,
-          "required": false
-        },
-        {
-          "component": "boolean",
-          "valueType": "boolean",
-          "name": "showDistance",
-          "label": "Show Distance",
-          "description": "Display distance from user to each store",
           "value": true,
           "required": false
         },
@@ -172,38 +157,122 @@
           ]
         },
         {
+          "component": "select",
+          "valueType": "string",
+          "name": "experienceMode",
+          "label": "Experience Mode",
+          "description": "Fast = lighter payloads; Rich = photos and reviews",
+          "value": "fast",
+          "required": false,
+          "options": [
+            {
+              "name": "Fast",
+              "value": "fast"
+            },
+            {
+              "name": "Rich",
+              "value": "rich"
+            }
+          ]
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "radiusPresets",
+          "label": "Radius Presets",
+          "description": "Comma-separated radius options shown in the UI (example: 0,5,10,25,50)",
+          "value": "0,5,10,25,50",
+          "required": false
+        },
+        {
+          "component": "select",
+          "valueType": "string",
+          "name": "units",
+          "label": "Distance Units",
+          "description": "Unit for distance display and radius filtering",
+          "value": "miles",
+          "required": false,
+          "options": [
+            {
+              "name": "Miles",
+              "value": "miles"
+            },
+            {
+              "name": "Kilometers",
+              "value": "km"
+            }
+          ]
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "noResultsMessage",
+          "label": "No Results Message",
+          "description": "Message shown when no stores match current filters",
+          "value": "No stores found matching your criteria. Please try a different search or remove some filters.",
+          "required": false
+        },
+        {
           "component": "number",
           "valueType": "number",
-          "name": "zoomLevel",
-          "label": "Map Zoom Level",
-          "description": "Initial zoom level for the map (8-18, where 11 is city-wide)",
-          "value": 11,
+          "name": "maxReviewsPerStore",
+          "label": "Max Reviews Per Store",
+          "description": "Maximum review count to render in rich details",
+          "value": 5,
           "required": false,
           "validation": {
-            "numberMin": 8,
-            "numberMax": 18
+            "numberMin": 1,
+            "numberMax": 20
           }
         },
         {
           "component": "select",
           "valueType": "string",
-          "name": "dataSource",
-          "label": "Store Data Source",
-          "description": "Where to load store data from",
-          "value": "block-content",
+          "name": "mapStyle",
+          "label": "Map Style",
+          "description": "Map visual style (uses configured map IDs)",
+          "value": "default",
           "required": false,
           "options": [
             {
-              "name": "Block Content (DA.live rows)",
-              "value": "block-content"
+              "name": "Default",
+              "value": "default"
             },
             {
-              "name": "JSON File (/data/stores.json)",
-              "value": "json-file"
+              "name": "Muted",
+              "value": "muted"
             },
             {
-              "name": "API Endpoint (/api/stores)",
-              "value": "api"
+              "name": "Minimal",
+              "value": "minimal"
+            }
+          ]
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "primaryCtaLabel",
+          "label": "Primary CTA Label",
+          "description": "Primary action label on store cards and info window links",
+          "value": "Get Directions",
+          "required": false
+        },
+        {
+          "component": "select",
+          "valueType": "string",
+          "name": "cardDensity",
+          "label": "Store Card Density",
+          "description": "Adjust card spacing for list layout",
+          "value": "comfortable",
+          "required": false,
+          "options": [
+            {
+              "name": "Comfortable",
+              "value": "comfortable"
+            },
+            {
+              "name": "Compact",
+              "value": "compact"
             }
           ]
         }

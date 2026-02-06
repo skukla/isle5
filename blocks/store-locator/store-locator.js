@@ -35,6 +35,127 @@ function sanitizeTel(value = '') {
   return digits ? `tel:${digits}` : '';
 }
 
+const PLACES_FIELDS = {
+  lite: [
+    'displayName',
+    'formattedAddress',
+    'location',
+    'nationalPhoneNumber',
+    'regularOpeningHours',
+    'utcOffsetMinutes',
+    'rating',
+    'userRatingCount',
+    'types',
+  ],
+  rich: [
+    'displayName',
+    'formattedAddress',
+    'location',
+    'nationalPhoneNumber',
+    'websiteURI',
+    'regularOpeningHours',
+    'utcOffsetMinutes',
+    'rating',
+    'userRatingCount',
+    'photos',
+    'types',
+    'reviews',
+  ],
+};
+
+const placeDetailsCache = new Map();
+
+function getCacheKey(placeId, level) {
+  return `storeLocator.place.${placeId}.${level}`;
+}
+
+function getCachedPlaceData(placeId, level, ttlMs) {
+  const now = Date.now();
+  const key = getCacheKey(placeId, level);
+  const memoryEntry = placeDetailsCache.get(key);
+  if (memoryEntry && now - memoryEntry.timestamp < ttlMs) {
+    return memoryEntry.payload;
+  }
+
+  const richKey = getCacheKey(placeId, 'rich');
+  if (level === 'lite') {
+    const richMemoryEntry = placeDetailsCache.get(richKey);
+    if (richMemoryEntry && now - richMemoryEntry.timestamp < ttlMs) {
+      return richMemoryEntry.payload;
+    }
+  }
+
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.timestamp && now - parsed.timestamp < ttlMs) {
+        placeDetailsCache.set(key, parsed);
+        return parsed.payload;
+      }
+    }
+    if (level === 'lite') {
+      const richRaw = sessionStorage.getItem(richKey);
+      if (richRaw) {
+        const parsed = JSON.parse(richRaw);
+        if (parsed.timestamp && now - parsed.timestamp < ttlMs) {
+          placeDetailsCache.set(richKey, parsed);
+          return parsed.payload;
+        }
+      }
+    }
+  } catch (e) {
+    // ignore invalid cache entries
+  }
+  return null;
+}
+
+function setCachedPlaceData(placeId, level, payload) {
+  const key = getCacheKey(placeId, level);
+  const entry = { timestamp: Date.now(), payload };
+  placeDetailsCache.set(key, entry);
+  try {
+    sessionStorage.setItem(key, JSON.stringify(entry));
+  } catch (e) {
+    // ignore storage quota errors
+  }
+}
+
+function mapWithConcurrency(items, limit, mapper) {
+  const max = Math.max(1, Number(limit) || 1);
+  const results = new Array(items.length);
+  let inFlight = 0;
+  let index = 0;
+
+  return new Promise((resolve, reject) => {
+    function runNext() {
+      if (index >= items.length && inFlight === 0) {
+        resolve(results);
+        return;
+      }
+
+      while (inFlight < max && index < items.length) {
+        const currentIndex = index;
+        index += 1;
+        processItem(currentIndex);
+      }
+    }
+
+    function processItem(currentIndex) {
+      inFlight += 1;
+      Promise.resolve(mapper(items[currentIndex], currentIndex))
+        .then((result) => {
+          results[currentIndex] = result;
+          inFlight -= 1;
+          runNext();
+        })
+        .catch(reject);
+    }
+
+    runNext();
+  });
+}
+
 /**
  * Parse block configuration from DA.live table rows
  * @param {Element} block - The block element from DA.live
@@ -43,10 +164,10 @@ function sanitizeTel(value = '') {
 function parseBlockConfig(block) {
   const config = {
     googleMapsApiKey: '',
-    autocompleteProvider: 'nominatim',
+    autocompleteProvider: 'google',
     defaultView: 'split',
     mapProvider: 'google',
-    searchRadius: 25,
+    searchRadius: 0,
     maxResults: 10,
     autoDetect: true,
     showDistance: true,
@@ -54,6 +175,20 @@ function parseBlockConfig(block) {
     servicesFilter: ['pharmacy', 'pickup', 'delivery', '24-hour', 'deli', 'bakery'],
     zoomLevel: 11,
     dataSource: 'block-content',
+    placesDataMode: 'lite',
+    enrichOnLoad: true,
+    enrichConcurrency: 4,
+    cacheTtlMinutes: 30,
+    enableReviews: true,
+    enablePhotos: true,
+    experienceMode: 'fast',
+    radiusPresets: [0, 5, 10, 25, 50],
+    units: 'miles',
+    noResultsMessage: 'No stores found matching your criteria. Please try a different search or remove some filters.',
+    maxReviewsPerStore: 5,
+    mapStyle: 'default',
+    primaryCtaLabel: 'Get Directions',
+    cardDensity: 'comfortable',
   };
 
   // Parse configuration from table rows
@@ -118,12 +253,76 @@ function parseBlockConfig(block) {
         case 'zoomlevel':
           config.zoomLevel = parseInt(value, 10) || 11;
           break;
+        case 'placesdatamode':
+          config.placesDataMode = value.toLowerCase() === 'rich' ? 'rich' : 'lite';
+          break;
+        case 'enrichonload':
+          config.enrichOnLoad = value.toLowerCase() !== 'false';
+          break;
+        case 'enrichconcurrency':
+          config.enrichConcurrency = Math.max(1, Math.min(10, parseInt(value, 10) || 4));
+          break;
+        case 'cachettlminutes':
+          config.cacheTtlMinutes = Math.max(1, Math.min(1440, parseInt(value, 10) || 30));
+          break;
+        case 'enablereviews':
+          config.enableReviews = value.toLowerCase() !== 'false';
+          break;
+        case 'enablephotos':
+          config.enablePhotos = value.toLowerCase() !== 'false';
+          break;
+        case 'experiencemode': {
+          const mode = value.toLowerCase() === 'rich' ? 'rich' : 'fast';
+          config.experienceMode = mode;
+          config.placesDataMode = mode === 'rich' ? 'rich' : 'lite';
+          config.enablePhotos = mode === 'rich';
+          config.enableReviews = mode === 'rich';
+          break;
+        }
+        case 'radiuspresets':
+        case 'searchradiusoptions':
+          config.radiusPresets = value
+            .split(',')
+            .map((entry) => parseInt(entry.trim(), 10))
+            .filter((entry) => Number.isFinite(entry) && entry >= 0)
+            .slice(0, 10);
+          if (config.radiusPresets.length === 0) {
+            config.radiusPresets = [0, 5, 10, 25, 50];
+          }
+          break;
+        case 'units':
+          config.units = value.toLowerCase() === 'km' ? 'km' : 'miles';
+          break;
+        case 'noresultsmessage':
+          config.noResultsMessage = value || config.noResultsMessage;
+          break;
+        case 'maxreviewspersore':
+        case 'maxreviewsperstore':
+          config.maxReviewsPerStore = Math.max(1, Math.min(20, parseInt(value, 10) || 5));
+          break;
+        case 'mapstyle': {
+          const style = value.toLowerCase();
+          config.mapStyle = ['default', 'muted', 'minimal'].includes(style) ? style : 'default';
+          break;
+        }
+        case 'primaryctalabel':
+          config.primaryCtaLabel = value || 'Get Directions';
+          break;
+        case 'storecarddensity':
+        case 'carddensity':
+          config.cardDensity = value.toLowerCase() === 'compact' ? 'compact' : 'comfortable';
+          break;
         default:
           // Not a config row, skip
           break;
       }
     }
   });
+
+  if (!config.radiusPresets.includes(0)) {
+    config.radiusPresets = [0, ...config.radiusPresets];
+  }
+  config.radiusPresets = [...new Set(config.radiusPresets)].sort((a, b) => a - b);
 
   return config;
 }
@@ -207,6 +406,22 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
   return R * c;
 }
 
+function milesToKm(miles) {
+  return miles * 1.60934;
+}
+
+function kmToMiles(km) {
+  return km / 1.60934;
+}
+
+function formatDistance(distanceMiles, units = 'miles') {
+  if (!Number.isFinite(distanceMiles)) return '';
+  if (units === 'km') {
+    return `${milesToKm(distanceMiles).toFixed(1)} km away`;
+  }
+  return `${distanceMiles.toFixed(1)} miles away`;
+}
+
 /**
  * Get user's current location via Geolocation API
  * @returns {Promise<Object>} User coordinates {lat, lng}
@@ -241,9 +456,13 @@ async function getUserLocation() {
  * @param {string} address - Address to geocode
  * @returns {Promise<Object>} Coordinates {lat, lng}
  */
-async function geocodeAddress(address) {
+function buildNominatimSearchUrl(query, limit = 1, addressdetails = false) {
+  return `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=${limit}&addressdetails=${addressdetails ? 1 : 0}`;
+}
+
+async function geocodeAddress(address, fetchOptions = {}) {
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+    const url = buildNominatimSearchUrl(address, 1, false);
 
     debugLog('Geocoding address:', address);
 
@@ -251,6 +470,7 @@ async function geocodeAddress(address) {
       headers: {
         'User-Agent': 'StoreLocator/1.0',
       },
+      signal: fetchOptions.signal,
     });
 
     if (!response.ok) {
@@ -725,10 +945,13 @@ function getTodayHours(store) {
 /**
  * Render a single store card (matches info window design)
  * @param {Object} store - Store object
- * @param {boolean} [showDistance=true] - Whether to show distance
+ * @param {Object} [uiConfig] - UI config options
  * @returns {Element} Store card element
  */
-function renderStoreCard(store, showDistance = true) {
+function renderStoreCard(store, uiConfig = {}) {
+  const showDistance = uiConfig.showDistance !== false;
+  const units = uiConfig.units || 'miles';
+  const ctaLabel = uiConfig.primaryCtaLabel || 'Get Directions';
   const card = document.createElement('article');
   card.classList.add('store-card');
   card.dataset.storeId = store.id;
@@ -753,7 +976,7 @@ function renderStoreCard(store, showDistance = true) {
       <svg class="distance-icon" viewBox="0 0 24 24" width="14" height="14">
         <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
       </svg>
-      ${store.distance.toFixed(1)} miles away
+      ${formatDistance(store.distance, units)}
     `;
     topRow.appendChild(distanceBadge);
   }
@@ -857,7 +1080,7 @@ function renderStoreCard(store, showDistance = true) {
     <svg viewBox="0 0 24 24" width="18" height="18">
       <path fill="currentColor" d="M21.71 11.29l-9-9a.996.996 0 00-1.41 0l-9 9a.996.996 0 000 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 000-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/>
     </svg>
-    Get Directions
+    ${escapeHtml(ctaLabel)}
   `;
   actions.appendChild(directionsBtn);
 
@@ -1026,6 +1249,37 @@ function createSearchSection(
   sortSection.appendChild(sortSelect);
   controlsRow.appendChild(sortSection);
 
+  // Radius controls
+  const radiusSection = document.createElement('div');
+  radiusSection.classList.add('sort-controls');
+
+  const radiusLabel = document.createElement('label');
+  radiusLabel.textContent = `Radius (${config.units === 'km' ? 'km' : 'mi'}):`;
+  radiusLabel.classList.add('sort-label');
+  radiusLabel.setAttribute('for', 'radius-select');
+  radiusSection.appendChild(radiusLabel);
+
+  const radiusSelect = document.createElement('select');
+  radiusSelect.id = 'radius-select';
+  radiusSelect.classList.add('sort-select');
+  radiusSelect.setAttribute('aria-label', 'Filter stores by search radius');
+
+  const selectedRadius = Number.isFinite(Number(prefs.selectedRadius))
+    ? Number(prefs.selectedRadius)
+    : Number(config.searchRadius);
+  config.radiusPresets.forEach((radius) => {
+    const opt = document.createElement('option');
+    opt.value = String(radius);
+    opt.textContent = radius === 0 ? 'All' : String(radius);
+    if (radius === selectedRadius) {
+      opt.selected = true;
+    }
+    radiusSelect.appendChild(opt);
+  });
+
+  radiusSection.appendChild(radiusSelect);
+  controlsRow.appendChild(radiusSection);
+
   // Services filter
   const filterSection = document.createElement('div');
   filterSection.classList.add('services-filter');
@@ -1092,6 +1346,7 @@ function createSearchSection(
   // Autocomplete functionality (Google Places or Nominatim)
   let autocompleteTimeout;
   let googleAutocompleteService = null;
+  let autocompleteFetchController = null;
 
   const initGoogleAutocomplete = () => {
     if (googleAutocompleteService) return;
@@ -1128,6 +1383,10 @@ function createSearchSection(
     clearTimeout(autocompleteTimeout);
 
     if (query.length < 3) {
+      if (autocompleteFetchController) {
+        autocompleteFetchController.abort();
+        autocompleteFetchController = null;
+      }
       autocompleteList.innerHTML = '';
       autocompleteList.classList.remove('visible');
       return;
@@ -1170,9 +1429,15 @@ function createSearchSection(
         } else {
           // Use Nominatim (OpenStreetMap) - FREE
           debugLog('🌍 Using Nominatim autocomplete for:', query);
-          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`;
+
+          if (autocompleteFetchController) {
+            autocompleteFetchController.abort();
+          }
+          autocompleteFetchController = new AbortController();
+          const url = buildNominatimSearchUrl(query, 5, true);
           const response = await fetch(url, {
             headers: { 'User-Agent': 'StoreLocator/1.0' },
+            signal: autocompleteFetchController.signal,
           });
           const results = await response.json();
           debugLog('✅ Nominatim results:', results.length, 'suggestions');
@@ -1201,7 +1466,9 @@ function createSearchSection(
           }
         }
       } catch (error) {
-        console.error('Autocomplete error:', error);
+        if (error.name !== 'AbortError') {
+          console.error('Autocomplete error:', error);
+        }
       }
     }, 300);
   }, { signal });
@@ -1219,15 +1486,34 @@ function createSearchSection(
     e.preventDefault();
     const searchValue = input.value.trim();
     if (searchValue) {
+      const selectedServices = Array.from(filterWrapper.querySelectorAll('.service-checkbox:checked'))
+        .map((cb) => cb.value);
+      const openNow = openNowCheckbox.checked;
+      const radius = Number.parseInt(radiusSelect.value, 10) || 0;
       savePreferences({ lastSearch: searchValue });
       autocompleteList.innerHTML = '';
       autocompleteList.classList.remove('visible');
-      onSearch({ type: 'address', value: searchValue });
+      onSearch({
+        type: 'address',
+        value: searchValue,
+        services: selectedServices,
+        openNow,
+        radius,
+      });
     }
   }, { signal });
 
   locationBtn.addEventListener('click', () => {
-    onSearch({ type: 'geolocation' });
+    const selectedServices = Array.from(filterWrapper.querySelectorAll('.service-checkbox:checked'))
+      .map((cb) => cb.value);
+    const openNow = openNowCheckbox.checked;
+    const radius = Number.parseInt(radiusSelect.value, 10) || 0;
+    onSearch({
+      type: 'geolocation',
+      services: selectedServices,
+      openNow,
+      radius,
+    });
   }, { signal });
 
   sortSelect.addEventListener('change', (e) => {
@@ -1239,14 +1525,43 @@ function createSearchSection(
     const selectedServices = Array.from(filterWrapper.querySelectorAll('.service-checkbox:checked'))
       .map((cb) => cb.value);
     const openNow = openNowCheckbox.checked;
+    const radius = Number.parseInt(radiusSelect.value, 10) || 0;
 
     savePreferences({
       selectedServices,
       openNow,
+      selectedRadius: radius,
     });
 
-    onSearch({ type: 'filter', services: selectedServices, openNow });
+    onSearch({
+      type: 'filter',
+      services: selectedServices,
+      openNow,
+      radius,
+    });
   }, { signal });
+
+  radiusSelect.addEventListener('change', () => {
+    const selectedServices = Array.from(filterWrapper.querySelectorAll('.service-checkbox:checked'))
+      .map((cb) => cb.value);
+    const openNow = openNowCheckbox.checked;
+    const radius = Number.parseInt(radiusSelect.value, 10) || 0;
+
+    savePreferences({ selectedRadius: radius });
+    onSearch({
+      type: 'filter',
+      services: selectedServices,
+      openNow,
+      radius,
+    });
+  }, { signal });
+
+  signal.addEventListener('abort', () => {
+    if (autocompleteFetchController) {
+      autocompleteFetchController.abort();
+      autocompleteFetchController = null;
+    }
+  }, { once: true });
 
   return section;
 }
@@ -1256,7 +1571,9 @@ function createSearchSection(
  * @param {Object} store - Store object with Places API data
  * @returns {string} HTML content for info window
  */
-function createInfoWindowContent(store) {
+function createInfoWindowContent(store, uiConfig = {}) {
+  const units = uiConfig.units || 'miles';
+  const ctaLabel = uiConfig.primaryCtaLabel || 'Get Directions';
   const safeStoreName = escapeHtml(store.name || 'Store');
   const safeAddress = escapeHtml(`${store.address.street}, ${store.address.city}, ${store.address.state} ${store.address.zip}`.trim());
   const safePhoneText = escapeHtml(store.contact?.phone || '');
@@ -1278,7 +1595,7 @@ function createInfoWindowContent(store) {
   if (photos.length > 0) {
     const photoSlides = photos.map((url, index) => `
       <div class="info-photo-slide">
-        <img src="${url}" alt="${store.name} photo ${index + 1}" class="info-photo" />
+        <img src="${sanitizeUrl(url, '')}" alt="${safeStoreName} photo ${index + 1}" class="info-photo" />
       </div>
     `).join('');
     photoHTML = `
@@ -1437,7 +1754,7 @@ function createInfoWindowContent(store) {
               <svg viewBox="0 0 24 24" width="18" height="18">
                 <path fill="currentColor" d="M21.71 11.29l-9-9a.996.996 0 00-1.41 0l-9 9a.996.996 0 000 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 000-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/>
               </svg>
-              <span>Directions</span>
+              <span>${escapeHtml(ctaLabel)}</span>
             </a>
           ` : ''}
         </div>
@@ -1473,7 +1790,7 @@ function createInfoWindowContent(store) {
         <svg class="info-icon-svg" viewBox="0 0 24 24" width="20" height="20">
           <path fill="#1a73e8" d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
         </svg>
-        <span class="info-distance-text">${store.distance.toFixed(1)} miles away</span>
+        <span class="info-distance-text">${formatDistance(store.distance, units)}</span>
       </div>
     `;
   }
@@ -1510,7 +1827,15 @@ function createInfoWindowContent(store) {
  * @param {number} zoomLevel - Map zoom level
  * @returns {Promise<Object|null>} Map instance or null
  */
-async function initializeMap(container, stores, center, zoomLevel, existingMapState = null) {
+async function initializeMap(
+  container,
+  stores,
+  center,
+  zoomLevel,
+  existingMapState = null,
+  onOpenStoreDetails = null,
+  uiConfig = {},
+) {
   // Check if Google Maps is available
   if (typeof google === 'undefined' || !google.maps) {
     container.innerHTML = '<p class="map-placeholder">📍 Map requires Google Maps API key.<br><br>Add <strong>"Google Maps API Key"</strong> in your DA.live block configuration to enable the interactive map.<br><br>The store list and search features work without it!</p>';
@@ -1529,12 +1854,18 @@ async function initializeMap(container, stores, center, zoomLevel, existingMapSt
     };
 
     if (!mapState.map) {
+      const mapIdByStyle = {
+        default: 'STORE_LOCATOR_MAP',
+        muted: 'STORE_LOCATOR_MAP_MUTED',
+        minimal: 'STORE_LOCATOR_MAP_MINIMAL',
+      };
+      const mapId = mapIdByStyle[uiConfig.mapStyle] || mapIdByStyle.default;
       mapState.map = new google.maps.Map(container, {
         center: { lat: center.lat, lng: center.lng },
         zoom: zoomLevel,
         mapTypeControl: false,
         streetViewControl: false,
-        mapId: 'STORE_LOCATOR_MAP', // Required for Advanced Markers
+        mapId, // Required for Advanced Markers
       });
     } else {
       mapState.map.setCenter({ lat: center.lat, lng: center.lng });
@@ -1588,13 +1919,19 @@ async function initializeMap(container, stores, center, zoomLevel, existingMapSt
       });
 
       const infoWindow = new google.maps.InfoWindow({
-        content: createInfoWindowContent(store),
+        content: createInfoWindowContent(store, uiConfig),
         maxWidth: 320,
       });
       mapState.infoWindows.push(infoWindow);
       mapState.storeMarkers.push(marker);
 
-      marker.addListener('click', () => {
+      marker.addListener('click', async () => {
+        let activeStore = store;
+        if (typeof onOpenStoreDetails === 'function') {
+          activeStore = await onOpenStoreDetails(store);
+          infoWindow.setContent(createInfoWindowContent(activeStore || store, uiConfig));
+        }
+
         infoWindow.open(mapState.map, marker);
 
         // Wait for InfoWindow to render, then attach event listeners
@@ -1696,7 +2033,123 @@ function parseGoogleOpeningHours(regularOpeningHours) {
   return hours;
 }
 
-async function enrichStoreWithPlacesData(store) {
+function getPlaceFields(detailLevel, config) {
+  if (detailLevel === 'rich') {
+    return PLACES_FIELDS.rich.filter((field) => {
+      if (field === 'reviews' && !config.enableReviews) return false;
+      if (field === 'photos' && !config.enablePhotos) return false;
+      return true;
+    });
+  }
+  return [...PLACES_FIELDS.lite];
+}
+
+function buildPlacePayload(place, detailLevel, config) {
+  // Parse address from formattedAddress
+  const addressParts = (place.formattedAddress || '').split(',').map((p) => p.trim());
+  const street = addressParts[0] || '';
+  const city = addressParts[1] || '';
+  const stateZip = addressParts[2] || '';
+  const stateZipParts = stateZip.split(' ');
+  const state = stateZipParts[0] || '';
+  const zip = stateZipParts[1] || '';
+
+  // Parse Google's opening hours to our format
+  const parsedHours = parseGoogleOpeningHours(place.regularOpeningHours);
+
+  // Filter out generic Google Places types (keep only meaningful ones)
+  const excludedTypes = [
+    'establishment',
+    'point_of_interest',
+    'finance',
+    'store',
+    'general_contractor',
+  ];
+  const meaningfulTypes = (place.types || [])
+    .filter((type) => !excludedTypes.includes(type))
+    .map((type) => type.replace(/_/g, ' ')); // Convert snake_case to readable
+
+  // Prepare photos array at high resolution
+  let storePhotos = [];
+  if (config.enablePhotos && place.photos && place.photos.length > 0) {
+    storePhotos = place.photos.slice(0, 6).map((photo) => photo.getURI({ maxHeight: 1200 }));
+  }
+
+  // Prepare reviews array (top 5 most helpful)
+  let storeReviews = [];
+  if (config.enableReviews && place.reviews && place.reviews.length > 0) {
+    storeReviews = place.reviews.slice(0, config.maxReviewsPerStore).map((review) => {
+      // Try multiple property paths for author photo (often not provided by Google)
+      const photoUri = review.authorAttribution?.photoUri
+        || review.authorAttribution?.photoURI
+        || review.author_photo
+        || '';
+
+      return {
+        author: review.authorAttribution?.displayName || 'Anonymous',
+        rating: review.rating || 0,
+        text: review.text?.text || review.text || '',
+        relativeTime: review.relativePublishTimeDescription || '',
+        authorPhotoUri: photoUri,
+      };
+    });
+  }
+
+  return {
+    displayName: place.displayName,
+    address: {
+      street,
+      city,
+      state,
+      zip,
+      coordinates: {
+        lat: place.location?.lat?.() || 0,
+        lng: place.location?.lng?.() || 0,
+      },
+    },
+    contact: {
+      phone: place.nationalPhoneNumber || '',
+      email: '',
+      website: place.websiteURI || '',
+    },
+    hours: parsedHours,
+    regularOpeningHours: place.regularOpeningHours,
+    utcOffsetMinutes: place.utcOffsetMinutes,
+    meaningfulTypes,
+    photo: storePhotos[0] || '',
+    photos: storePhotos,
+    rating: place.rating || 0,
+    userRatingsTotal: place.userRatingCount || 0,
+    reviews: storeReviews,
+    richDetailsLoaded: detailLevel === 'rich',
+  };
+}
+
+function applyPlacePayloadToStore(store, payload) {
+  return {
+    ...store,
+    name: store.overrideName || payload.displayName,
+    address: payload.address,
+    contact: payload.contact,
+    hours: payload.hours,
+    regularOpeningHours: payload.regularOpeningHours,
+    utcOffsetMinutes: payload.utcOffsetMinutes,
+    services: store.customServices.length > 0
+      ? store.customServices
+      : payload.meaningfulTypes,
+    photo: payload.photo || store.photo || '',
+    photos: payload.photos.length > 0 ? payload.photos : (store.photos || []),
+    rating: payload.rating,
+    userRatingsTotal: payload.userRatingsTotal,
+    reviews: payload.reviews,
+    requiresEnrichment: false,
+    richDetailsLoaded: payload.richDetailsLoaded || store.richDetailsLoaded || false,
+    // Generate 'Get Directions' URL using Place ID
+    directionsUrl: `https://www.google.com/maps/place/?q=place_id:${store.placeId}`,
+  };
+}
+
+async function enrichStoreWithPlacesData(store, config, detailLevel = 'lite') {
   if (!store.placeId) {
     console.warn(`⚠️ Store ${store.name || store.id} has no Place ID`);
     return store;
@@ -1708,6 +2161,12 @@ async function enrichStoreWithPlacesData(store) {
     return store;
   }
 
+  const ttlMs = config.cacheTtlMinutes * 60 * 1000;
+  const cachedPayload = getCachedPlaceData(store.placeId, detailLevel, ttlMs);
+  if (cachedPayload) {
+    return applyPlacePayloadToStore(store, cachedPayload);
+  }
+
   try {
     // Use the NEW Place class (Places API New)
     const place = new google.maps.places.Place({
@@ -1716,120 +2175,24 @@ async function enrichStoreWithPlacesData(store) {
 
     // Fetch fields using the new fetchFields method with field mask
     await place.fetchFields({
-      fields: [
-        'displayName',
-        'formattedAddress',
-        'location',
-        'nationalPhoneNumber',
-        'websiteURI',
-        'regularOpeningHours',
-        'utcOffsetMinutes',
-        'rating',
-        'userRatingCount',
-        'photos',
-        'types',
-        'reviews',
-      ],
+      fields: getPlaceFields(detailLevel, config),
     });
 
     // Extract data from the new Place object
     if (place && place.displayName) {
-      // Parse address from formattedAddress
-      const addressParts = (place.formattedAddress || '').split(',').map((p) => p.trim());
-      const street = addressParts[0] || '';
-      const city = addressParts[1] || '';
-      const stateZip = addressParts[2] || '';
-      const stateZipParts = stateZip.split(' ');
-      const state = stateZipParts[0] || '';
-      const zip = stateZipParts[1] || '';
+      const payload = buildPlacePayload(place, detailLevel, config);
+      setCachedPlaceData(store.placeId, detailLevel, payload);
+      const enrichedStore = applyPlacePayloadToStore(store, payload);
 
-      // Parse Google's opening hours to our format
-      const parsedHours = parseGoogleOpeningHours(place.regularOpeningHours);
-
-      // Filter out generic Google Places types (keep only meaningful ones)
-      const excludedTypes = [
-        'establishment',
-        'point_of_interest',
-        'finance',
-        'store',
-        'general_contractor',
-      ];
-      const meaningfulTypes = (place.types || [])
-        .filter((type) => !excludedTypes.includes(type))
-        .map((type) => type.replace(/_/g, ' ')); // Convert snake_case to readable
-
-      // Prepare photos array at high resolution
-      let storePhotos = [];
-      if (place.photos && place.photos.length > 0) {
-        storePhotos = place.photos.slice(0, 6).map((photo) => photo.getURI({ maxHeight: 1200 }));
-      } else if (store.photo) {
-        storePhotos = [store.photo];
-      }
-
-      // Prepare reviews array (top 5 most helpful)
-      let storeReviews = [];
-      if (place.reviews && place.reviews.length > 0) {
-        storeReviews = place.reviews.slice(0, 5).map((review) => {
-          // Try multiple property paths for author photo (often not provided by Google)
-          const photoUri = review.authorAttribution?.photoUri
-            || review.authorAttribution?.photoURI
-            || review.author_photo
-            || '';
-
-          return {
-            author: review.authorAttribution?.displayName || 'Anonymous',
-            rating: review.rating || 0,
-            text: review.text?.text || review.text || '',
-            relativeTime: review.relativePublishTimeDescription || '',
-            authorPhotoUri: photoUri,
-          };
-        });
-      }
-
-      // Merge Places API data with store data
-      const enrichedStore = {
-        ...store,
-        name: store.overrideName || place.displayName,
-        address: {
-          street,
-          city,
-          state,
-          zip,
-          coordinates: {
-            lat: place.location.lat(),
-            lng: place.location.lng(),
-          },
-        },
-        contact: {
-          phone: place.nationalPhoneNumber || '',
-          email: '',
-          website: place.websiteURI || '',
-        },
-        hours: parsedHours,
-        // Keep raw Google data for advanced features
-        regularOpeningHours: place.regularOpeningHours,
-        utcOffsetMinutes: place.utcOffsetMinutes,
-        // Use custom services only (ignore generic Google types)
-        services: store.customServices.length > 0
-          ? store.customServices
-          : meaningfulTypes,
-        photo: place.photos && place.photos[0]
-          ? place.photos[0].getURI({ maxHeight: 1200 })
-          : '',
-        photos: storePhotos,
-        rating: place.rating || 0,
-        userRatingsTotal: place.userRatingCount || 0,
-        reviews: storeReviews,
-        placeData: place, // Keep full Places API data
-        requiresEnrichment: false,
-        // Generate 'Get Directions' URL using Place ID
-        directionsUrl: `https://www.google.com/maps/place/?q=place_id:${store.placeId}`,
-      };
-
-      debugLog(`✅ Enriched store: ${enrichedStore.name} (NEW Places API)`);
+      debugLog(`✅ Enriched store: ${enrichedStore.name} (NEW Places API, ${detailLevel})`);
       debugLog('  📍 Address:', enrichedStore.address);
       debugLog('  📞 Phone:', enrichedStore.contact.phone || '❌ NOT PROVIDED BY GOOGLE');
-      debugLog('  🕒 Hours:', Object.keys(parsedHours).length > 0 ? `✅ ${Object.keys(parsedHours).length} days` : '❌ NOT PROVIDED BY GOOGLE');
+      debugLog(
+        '  🕒 Hours:',
+        Object.keys(payload.hours).length > 0
+          ? `✅ ${Object.keys(payload.hours).length} days`
+          : '❌ NOT PROVIDED BY GOOGLE',
+      );
       debugLog('  ⭐ Rating:', enrichedStore.rating || '❌ NOT PROVIDED BY GOOGLE');
       debugLog('  📊 Reviews:', enrichedStore.userRatingsTotal || '❌ NOT PROVIDED BY GOOGLE');
       return enrichedStore;
@@ -1848,7 +2211,7 @@ async function enrichStoreWithPlacesData(store) {
  * @param {Array} stores - Array of store objects
  * @returns {Promise<Array>} Array of enriched stores
  */
-async function enrichStoresWithPlacesData(stores) {
+async function enrichStoresWithPlacesData(stores, config, detailLevel = 'lite') {
   const storesToEnrich = stores.filter((store) => store.requiresEnrichment);
 
   if (storesToEnrich.length === 0) {
@@ -1864,19 +2227,23 @@ async function enrichStoresWithPlacesData(stores) {
     return stores; // Return un-enriched stores
   }
 
-  debugLog(`🔄 Enriching ${storesToEnrich.length} stores with NEW Places API...`);
+  debugLog(`🔄 Enriching ${storesToEnrich.length} stores with NEW Places API (${detailLevel})...`);
 
-  const enrichedStores = await Promise.all(
-    stores.map((store) => {
+  const enrichedStores = await mapWithConcurrency(
+    stores,
+    config.enrichConcurrency,
+    (store) => {
       if (store.requiresEnrichment) {
-        return enrichStoreWithPlacesData(store);
+        return enrichStoreWithPlacesData(store, config, detailLevel);
       }
       return Promise.resolve(store);
-    }),
+    },
   );
 
   const successfulEnrichments = enrichedStores.filter((s) => !s.requiresEnrichment).length;
-  debugLog(`✅ Successfully enriched ${successfulEnrichments}/${storesToEnrich.length} stores with NEW Places API`);
+  debugLog(
+    `✅ Successfully enriched ${successfulEnrichments}/${storesToEnrich.length} stores with NEW Places API`,
+  );
   return enrichedStores;
 }
 
@@ -1955,6 +2322,7 @@ export default async function decorate(block) {
   // Create UI structure AFTER parsing stores
   const container = document.createElement('div');
   container.classList.add('store-locator-container');
+  container.dataset.cardDensity = config.cardDensity;
 
   const listContainer = document.createElement('div');
   listContainer.classList.add('store-list');
@@ -1973,12 +2341,15 @@ export default async function decorate(block) {
     if (stores.length === 0) {
       const noResults = document.createElement('p');
       noResults.classList.add('no-results');
-      noResults.textContent = 'No stores found matching your criteria. '
-        + 'Please try a different search or remove some filters.';
+      noResults.textContent = config.noResultsMessage;
       fragment.appendChild(noResults);
     } else {
       stores.forEach((store) => {
-        const card = renderStoreCard(store, config.showDistance);
+        const card = renderStoreCard(store, {
+          showDistance: config.showDistance,
+          units: config.units,
+          primaryCtaLabel: config.primaryCtaLabel,
+        });
         fragment.appendChild(card);
       });
     }
@@ -2005,15 +2376,36 @@ export default async function decorate(block) {
    * @param {boolean} openNow - Open now filter
    * @returns {Array} Processed stores
    */
-  function applyFiltersAndSort(stores, services = [], openNow = false) {
+  function applyFiltersAndSort(
+    stores,
+    services = [],
+    openNow = false,
+    radius = config.searchRadius,
+  ) {
     let processed = filterStores(stores, services, openNow);
     processed = sortStores(processed, currentSort, userLocation);
-    if (userLocation && Number.isFinite(config.searchRadius) && config.searchRadius > 0) {
+    const radiusMiles = config.units === 'km' ? kmToMiles(radius) : radius;
+    if (userLocation && Number.isFinite(radiusMiles) && radiusMiles > 0) {
       processed = processed.filter((store) => (
-        typeof store.distance === 'number' && store.distance <= config.searchRadius
+        typeof store.distance === 'number' && store.distance <= radiusMiles
       ));
     }
     return processed.slice(0, config.maxResults);
+  }
+
+  async function hydrateStoreDetails(store) {
+    if (!store?.placeId) return store;
+    if (store.richDetailsLoaded) return store;
+
+    try {
+      const enriched = await enrichStoreWithPlacesData(store, config, 'rich');
+      allStores = allStores.map((entry) => (entry.id === enriched.id ? enriched : entry));
+      filteredStores = filteredStores.map((entry) => (entry.id === enriched.id ? enriched : entry));
+      return enriched;
+    } catch (error) {
+      console.error(`Unable to hydrate rich details for ${store.id}:`, error);
+      return store;
+    }
   }
 
   /**
@@ -2026,14 +2418,26 @@ export default async function decorate(block) {
       .map((cb) => cb.value);
     const openNow = container.querySelector('.open-now-checkbox')?.checked || false;
 
-    filteredStores = applyFiltersAndSort(allStores, services, openNow);
+    const radius = Number.parseInt(
+      container.querySelector('#radius-select')?.value ?? `${config.searchRadius}`,
+      10,
+    ) || 0;
+    filteredStores = applyFiltersAndSort(allStores, services, openNow, radius);
     renderStores(filteredStores);
 
     // Update map if needed
     if (mapInstance && userLocation) {
       const fallback = { lat: 45.5231, lng: -122.6765 };
       const mapCenter = userLocation || filteredStores[0]?.address.coordinates || fallback;
-      initializeMap(mapContainer, filteredStores, mapCenter, config.zoomLevel, mapInstance)
+      initializeMap(
+        mapContainer,
+        filteredStores,
+        mapCenter,
+        config.zoomLevel,
+        mapInstance,
+        hydrateStoreDetails,
+        config,
+      )
         .then((nextMapInstance) => { mapInstance = nextMapInstance; })
         .catch((error) => console.error('Map refresh failed:', error));
     }
@@ -2054,12 +2458,21 @@ export default async function decorate(block) {
 
         const services = searchData.services || [];
         const openNow = searchData.openNow || false;
-        filteredStores = applyFiltersAndSort(allStores, services, openNow);
+        const radius = Number.isFinite(searchData.radius) ? searchData.radius : config.searchRadius;
+        filteredStores = applyFiltersAndSort(allStores, services, openNow, radius);
         renderStores(filteredStores);
 
         // Update map
         if (mapInstance) {
-          initializeMap(mapContainer, filteredStores, userLocation, config.zoomLevel, mapInstance)
+          initializeMap(
+            mapContainer,
+            filteredStores,
+            userLocation,
+            config.zoomLevel,
+            mapInstance,
+            hydrateStoreDetails,
+            config,
+          )
             .then((nextMapInstance) => { mapInstance = nextMapInstance; })
             .catch((error) => console.error('Map refresh failed:', error));
         }
@@ -2085,17 +2498,26 @@ export default async function decorate(block) {
       showLoading(listContainer, loadingSpinner);
 
       try {
-        userLocation = await geocodeAddress(searchData.value);
+        userLocation = await geocodeAddress(searchData.value, { signal });
         savePreferences({ lastLocation: userLocation });
 
         const services = searchData.services || [];
         const openNow = searchData.openNow || false;
-        filteredStores = applyFiltersAndSort(allStores, services, openNow);
+        const radius = Number.isFinite(searchData.radius) ? searchData.radius : config.searchRadius;
+        filteredStores = applyFiltersAndSort(allStores, services, openNow, radius);
         renderStores(filteredStores);
 
         // Update map
         if (mapInstance) {
-          initializeMap(mapContainer, filteredStores, userLocation, config.zoomLevel, mapInstance)
+          initializeMap(
+            mapContainer,
+            filteredStores,
+            userLocation,
+            config.zoomLevel,
+            mapInstance,
+            hydrateStoreDetails,
+            config,
+          )
             .then((nextMapInstance) => { mapInstance = nextMapInstance; })
             .catch((error) => console.error('Map refresh failed:', error));
         }
@@ -2127,12 +2549,21 @@ export default async function decorate(block) {
         allStores,
         searchData.services || [],
         searchData.openNow || false,
+        Number.isFinite(searchData.radius) ? searchData.radius : config.searchRadius,
       );
       renderStores(filteredStores);
 
       // Update map if needed
       if (mapInstance && userLocation) {
-        initializeMap(mapContainer, filteredStores, userLocation, config.zoomLevel, mapInstance)
+        initializeMap(
+          mapContainer,
+          filteredStores,
+          userLocation,
+          config.zoomLevel,
+          mapInstance,
+          hydrateStoreDetails,
+          config,
+        )
           .then((nextMapInstance) => { mapInstance = nextMapInstance; })
           .catch((error) => console.error('Map refresh failed:', error));
       }
@@ -2196,7 +2627,7 @@ export default async function decorate(block) {
     // Fallback to configured default location if no geolocation available
     if (!userLocation && config.defaultLocation) {
       try {
-        userLocation = await geocodeAddress(config.defaultLocation);
+        userLocation = await geocodeAddress(config.defaultLocation, { signal });
       } catch (error) {
         console.warn(`Default location geocoding failed for "${config.defaultLocation}"`);
       }
@@ -2205,9 +2636,12 @@ export default async function decorate(block) {
     // Apply saved filters
     const savedServices = prefs.selectedServices || [];
     const savedOpenNow = prefs.openNow || false;
+    const savedRadius = Number.isFinite(Number(prefs.selectedRadius))
+      ? Number(prefs.selectedRadius)
+      : config.searchRadius;
 
     // Apply filters and sort
-    filteredStores = applyFiltersAndSort(allStores, savedServices, savedOpenNow);
+    filteredStores = applyFiltersAndSort(allStores, savedServices, savedOpenNow, savedRadius);
 
     // Render store list
     renderStores(filteredStores);
@@ -2226,9 +2660,12 @@ export default async function decorate(block) {
         // Enrich stores that have Place IDs using NEW Places API
         if (allStores.some((store) => store.requiresEnrichment)) {
           showLoading(listContainer, loadingSpinner);
-          allStores = await enrichStoresWithPlacesData(allStores);
+          const detailLevel = config.placesDataMode === 'rich' ? 'rich' : 'lite';
+          if (config.enrichOnLoad) {
+            allStores = await enrichStoresWithPlacesData(allStores, config, detailLevel);
+          }
           // Re-apply filters and sort (this recalculates distances with userLocation)
-          filteredStores = applyFiltersAndSort(allStores, savedServices, savedOpenNow);
+          filteredStores = applyFiltersAndSort(allStores, savedServices, savedOpenNow, savedRadius);
           renderStores(filteredStores);
           hideLoading(loadingSpinner);
         }
@@ -2242,6 +2679,8 @@ export default async function decorate(block) {
           mapCenter,
           config.zoomLevel,
           mapInstance,
+          hydrateStoreDetails,
+          config,
         );
       } catch (error) {
         console.error('Failed to load Google Maps:', error);
@@ -2258,6 +2697,8 @@ export default async function decorate(block) {
         mapCenter,
         config.zoomLevel,
         mapInstance,
+        hydrateStoreDetails,
+        config,
       );
     }
   } catch (error) {

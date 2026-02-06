@@ -1047,6 +1047,20 @@ a.btn-primary:visited,
   color: #fff !important;
 }
 
+.store-locator-container[data-card-density="compact"] .store-card {
+  padding: 14px;
+}
+
+.store-locator-container[data-card-density="compact"] .store-name {
+  font-size: 16px;
+}
+
+.store-locator-container[data-card-density="compact"] .card-actions {
+  margin: auto -14px -14px;
+  padding: 10px 14px 14px;
+  gap: 8px;
+}
+
 /* Text Link - Secondary action */
 .btn-text-link {
   background: none;
