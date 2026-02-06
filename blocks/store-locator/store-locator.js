@@ -1123,8 +1123,8 @@ function renderStoreCard(store, uiConfig = {}) {
 
   const servicesTags = document.createElement('div');
   servicesTags.classList.add('card-services');
+  let moreDetails = null;
   if (store.services && store.services.length > 0) {
-    let moreDetails = null;
     const visibleServices = store.services.slice(0, maxVisibleServiceTags);
     visibleServices.forEach((service) => {
       const tag = document.createElement('span');
@@ -1149,13 +1149,12 @@ function renderStoreCard(store, uiConfig = {}) {
         <div class="card-more-content">${extraServices}</div>
       `;
     }
-
-    if (moreDetails) card.appendChild(moreDetails);
   } else {
     servicesTags.classList.add('card-slot-empty');
     servicesTags.innerHTML = '<span class="card-service-tag card-service-placeholder">No listed services</span>';
   }
   card.appendChild(servicesTags);
+  if (moreDetails) card.appendChild(moreDetails);
 
   const hours = document.createElement('div');
   hours.classList.add('card-hours');
@@ -1168,7 +1167,6 @@ function renderStoreCard(store, uiConfig = {}) {
         <span class="card-hours-dot" aria-hidden="true"></span>
         <span class="card-hours-text">${statusPrefix} · ${escapeHtml(hoursText)}</span>
       </div>
-      <span class="card-hours-chevron" aria-hidden="true">▾</span>
     `;
   } else {
     hours.classList.add('card-slot-empty');
@@ -1177,7 +1175,6 @@ function renderStoreCard(store, uiConfig = {}) {
         <span class="card-hours-dot" aria-hidden="true"></span>
         <span class="card-hours-text">Hours unavailable</span>
       </div>
-      <span class="card-hours-chevron" aria-hidden="true">▾</span>
     `;
   }
   card.appendChild(hours);

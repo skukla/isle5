@@ -75,6 +75,19 @@
   --sl-radius-md: 12px;
   --sl-radius-lg: 16px;
   --sl-radius-full: 9999px;
+
+  /* Card System Tokens */
+  --sl-card-border: #e5e7eb;
+  --sl-card-border-strong: #d8dee8;
+  --sl-card-radius: 12px;
+  --sl-card-padding: 20px;
+  --sl-card-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  --sl-card-shadow-hover: 0 2px 8px rgb(0 0 0 / 10%);
+  --sl-card-meta-surface: linear-gradient(135deg, rgb(248 250 252 / 90%) 0%, rgb(255 255 255 / 96%) 100%);
+  --sl-card-distance: #1a73e8;
+  --sl-card-text: #202124;
+  --sl-card-text-muted: #4b5563;
+  --sl-card-section-gap: 12px;
   
   /* Transitions */
   --sl-transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
@@ -655,19 +668,19 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
    - Actions: 98px min (always visible, pushed to bottom)
    ============================================ */
 .store-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 20px;
+  background: var(--sl-surface-primary);
+  border: 1px solid var(--sl-card-border);
+  border-radius: var(--sl-card-radius);
+  padding: var(--sl-card-padding);
   display: flex;
   flex-direction: column;
   gap: 0;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  box-shadow: var(--sl-card-shadow);
 }
 
 .store-card:hover {
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  box-shadow: var(--sl-card-shadow-hover);
   border-color: #cfd4dc;
   transform: translateY(-1px);
 }
@@ -677,7 +690,7 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
   height: 160px;
   border-radius: 10px;
   overflow: hidden;
-  margin: 0 0 12px;
+  margin: 0 0 var(--sl-card-section-gap);
   background: #f3f4f6;
 }
 
@@ -710,7 +723,7 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
   justify-content: flex-start;
   align-items: center;
   gap: 0;
-  margin-bottom: 12px;
+  margin-bottom: var(--sl-card-section-gap);
 }
 
 .card-meta-strip {
@@ -720,8 +733,8 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
   width: 100%;
   padding: 6px 10px;
   border-radius: 9999px;
-  border: 1px solid #d8dde6;
-  background: linear-gradient(135deg, rgb(248 250 252 / 90%) 0%, rgb(255 255 255 / 96%) 100%);
+  border: 1px solid var(--sl-card-border-strong);
+  background: var(--sl-card-meta-surface);
 }
 
 .card-meta-separator {
@@ -738,7 +751,7 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
   justify-content: flex-start;
   gap: 6px;
   font-size: 13px;
-  color: #1a73e8;
+  color: var(--sl-card-distance);
   font-weight: 600;
   flex: 1 1 0%;
   white-space: nowrap;
@@ -770,15 +783,15 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
   white-space: nowrap;
   flex-shrink: 0;
   margin-left: 0;
-  color: #4b5563;
+  color: var(--sl-card-text-muted);
 }
 
 .card-status-badge.open {
-  color: #4b5563;
+  color: var(--sl-card-text-muted);
 }
 
 .card-status-badge.closed {
-  color: #4b5563;
+  color: var(--sl-card-text-muted);
 }
 
 .card-status-badge .status-icon {
@@ -802,7 +815,7 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
   font-size: 16px;
   font-weight: 600;
   line-height: 1.35;
-  color: #202124;
+  color: var(--sl-card-text);
   margin: 0 0 6px;
   white-space: nowrap;
   overflow: hidden;
@@ -856,12 +869,12 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
 /* Address - FIXED HEIGHT, 2 LINES MAX */
 .card-address {
   font-size: 13px;
-  color: #4b5563;
+  color: var(--sl-card-text-muted);
   line-height: 1.5;
   font-style: normal;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #d8dee8;
+  margin-bottom: var(--sl-card-section-gap);
+  padding-bottom: var(--sl-card-section-gap);
+  border-bottom: 1px solid var(--sl-card-border-strong);
   min-height: 49px;
   max-height: 49px;
   overflow: hidden;
@@ -876,7 +889,7 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
 .card-phone {
   font-size: 13px;
   color: #374151;
-  margin-bottom: 12px;
+  margin-bottom: var(--sl-card-section-gap);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -914,10 +927,12 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #d8dee8;
-  min-height: 44px;
+  margin-bottom: var(--sl-card-section-gap);
+  padding-bottom: var(--sl-card-section-gap);
+  border-bottom: 1px solid var(--sl-card-border-strong);
+  min-height: 48px;
+  max-height: 48px;
+  overflow: hidden;
   align-content: flex-start;
   box-sizing: border-box;
 }
@@ -960,7 +975,7 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
 
 .card-more-details {
   margin-bottom: 8px;
-  border-top: 1px solid #d8dee8;
+  border-top: 1px solid var(--sl-card-border-strong);
   padding-top: 8px;
 }
 
@@ -999,7 +1014,7 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
 /* Hours Text - FIXED HEIGHT */
 .card-hours {
   font-size: 13px;
-  color: #4b5563;
+  color: var(--sl-card-text-muted);
   line-height: 1.5;
   margin-bottom: 0;
   padding: 6px 10px;
@@ -1049,9 +1064,7 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
 }
 
 .card-hours-chevron {
-  flex-shrink: 0;
-  color: #8b93a1;
-  font-size: 11px;
+  display: none;
 }
 
 .card-slot-empty {
@@ -1275,9 +1288,9 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
   grid-template-columns: 1fr;
   gap: 8px;
   align-items: stretch;
-  margin: 12px 0 0;
+  margin: var(--sl-card-section-gap) 0 0;
   padding: 10px 0 0;
-  border-top: 1px solid #d8dee8;
+  border-top: 1px solid var(--sl-card-border-strong);
 }
 
 .card-actions > * {
