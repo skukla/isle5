@@ -995,6 +995,8 @@ function renderStoreCard(store, uiConfig = {}) {
   // Top row: Distance + Status badge
   const topRow = document.createElement('div');
   topRow.classList.add('card-top-row');
+  const metaStrip = document.createElement('div');
+  metaStrip.classList.add('card-meta-strip');
 
   // Distance badge (left side)
   if (showDistance && store.distance !== undefined) {
@@ -1006,7 +1008,7 @@ function renderStoreCard(store, uiConfig = {}) {
       </svg>
       ${formatDistance(store.distance, units)}
     `;
-    topRow.appendChild(distanceBadge);
+    metaStrip.appendChild(distanceBadge);
   }
 
   // Status badge (right side)
@@ -1018,10 +1020,18 @@ function renderStoreCard(store, uiConfig = {}) {
     <svg class="status-icon" viewBox="0 0 8 8" width="8" height="8">
       <circle cx="4" cy="4" r="4" fill="currentColor"/>
     </svg>
-    ${isOpen ? 'OPEN' : 'CLOSED'}
+    ${isOpen ? 'Open' : 'Closed'}
   `;
-  topRow.appendChild(statusBadge);
+  if (showDistance && store.distance !== undefined) {
+    const separator = document.createElement('span');
+    separator.classList.add('card-meta-separator');
+    separator.setAttribute('aria-hidden', 'true');
+    separator.textContent = '•';
+    metaStrip.appendChild(separator);
+  }
+  metaStrip.appendChild(statusBadge);
 
+  topRow.appendChild(metaStrip);
   card.appendChild(topRow);
 
   if (showPhotos) {
