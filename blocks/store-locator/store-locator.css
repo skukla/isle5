@@ -104,6 +104,12 @@
   --sl-ui-panel-shadow: 0 1px 2px rgb(15 23 42 / 6%);
   --sl-ui-control-bg: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
   --sl-ui-control-border: #dbe4f2;
+  --sl-action-bg: #1a73e8;
+  --sl-action-bg-hover: #1558b0;
+  --sl-action-bg-active: #174ea6;
+  --sl-action-text: #fff;
+  --sl-action-border: #1558b0;
+  --sl-action-shadow: 0 2px 8px rgb(26 115 232 / 25%);
   --sl-ui-font-family: var(--type-body-2-default-font-family, "adobe-clean", roboto, "Roboto", sans-serif);
   --sl-ui-text-size: 13px;
   --sl-ui-text-weight: 600;
@@ -1077,11 +1083,21 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
   min-height: 49px;
   max-height: 49px;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  text-overflow: ellipsis;
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 2px;
   box-sizing: border-box;
+}
+
+.card-address-line {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-address-line.is-empty {
+  visibility: hidden;
 }
 
 /* Phone - FIXED HEIGHT */
@@ -1504,20 +1520,23 @@ main > .section.store-locator-container[data-width="full"] .store-locator.block 
 .card-actions .btn-primary,
 a.btn-primary {
   width: 100%;
-  padding: 10px 12px;
-  background: linear-gradient(135deg, rgb(218 234 255 / 88%) 0%, rgb(255 255 255 / 92%) 100%) !important;
-  color: #0f4db6 !important;
-  border: 1px solid rgb(160 196 255 / 95%);
-  border-radius: var(--sl-card-component-radius);
+  padding: 8px 12px;
+  background: var(--sl-action-bg) !important;
+  color: var(--sl-action-text) !important;
+  border: 1px solid var(--sl-action-border);
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
+  font-family: Roboto, Arial, sans-serif;
+  line-height: 1.2;
+  letter-spacing: 0;
   cursor: pointer;
   transition: all 0.2s ease;
   text-decoration: none !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   box-shadow: none;
   box-sizing: border-box;
 }
@@ -1551,35 +1570,38 @@ a.btn-primary svg path,
 
 a.btn-primary:hover,
 .card-actions .btn-primary:hover {
-  background: linear-gradient(135deg, rgb(208 228 255 / 96%) 0%, #fff 100%) !important;
-  border-color: #7aaef7;
-  color: #0b3f95 !important;
-  box-shadow: 0 2px 8px rgb(26 115 232 / 15%);
+  background: var(--sl-action-bg-hover) !important;
+  border-color: var(--sl-action-bg-hover);
+  color: var(--sl-action-text) !important;
+  box-shadow: var(--sl-action-shadow);
   transform: translateY(-1px);
 }
 
 a.btn-primary:active,
 .card-actions .btn-primary:active {
-  background: linear-gradient(135deg, rgb(199 223 255 / 96%) 0%, #fff 100%) !important;
-  color: #0b3f95 !important;
+  background: var(--sl-action-bg-active) !important;
+  color: var(--sl-action-text) !important;
   box-shadow: none;
   transform: translateY(0);
 }
 
 a.btn-primary:visited,
 .card-actions .btn-primary:visited {
-  color: #0f4db6 !important;
+  color: var(--sl-action-text) !important;
 }
 
 .card-actions .btn-secondary {
   width: 100%;
-  padding: 10px 12px;
-  background: linear-gradient(135deg, rgb(232 240 254 / 62%) 0%, rgb(255 255 255 / 95%) 100%);
-  border: 1px solid rgb(210 227 252 / 95%);
-  border-radius: var(--sl-card-component-radius);
-  color: #1f3f7a;
+  padding: 8px 12px;
+  background: var(--sl-action-bg);
+  border: 1px solid var(--sl-action-border);
+  border-radius: 8px;
+  color: var(--sl-action-text);
   font-size: 13px;
   font-weight: 600;
+  font-family: Roboto, Arial, sans-serif;
+  line-height: 1.2;
+  letter-spacing: 0;
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -1590,11 +1612,18 @@ a.btn-primary:visited,
 }
 
 .card-actions .btn-secondary:hover {
-  background: linear-gradient(135deg, rgb(232 240 254 / 78%) 0%, #fff 100%);
-  border-color: #8ab4f8;
-  color: #174ea6;
+  background: var(--sl-action-bg-hover);
+  border-color: var(--sl-action-bg-hover);
+  color: var(--sl-action-text);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgb(26 115 232 / 15%);
+  box-shadow: var(--sl-action-shadow);
+}
+
+.card-actions .btn-secondary:active {
+  background: var(--sl-action-bg-active);
+  color: var(--sl-action-text);
+  box-shadow: none;
+  transform: translateY(0);
 }
 
 .card-actions .btn-primary:focus-visible,
@@ -2161,36 +2190,68 @@ a.btn-primary:visited,
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background: linear-gradient(135deg, rgb(232 240 254 / 62%) 0%, rgb(255 255 255 / 95%) 100%);
-  border: 1px solid rgb(210 227 252 / 95%);
+  background: var(--sl-action-bg);
+  border: 1px solid var(--sl-action-border);
   border-radius: 8px;
-  text-decoration: none;
-  color: #1f3f7a;
+  text-decoration: none !important;
+  color: var(--sl-action-text);
   font-size: 13px;
   font-weight: 600;
+  font-family: Roboto, Arial, sans-serif;
+  line-height: 1.2;
+  letter-spacing: 0;
   transition: all 0.2s ease;
   flex: 1;
   justify-content: center;
 }
 
+.info-link:link,
+.info-link:visited {
+  color: var(--sl-action-text) !important;
+  text-decoration: none !important;
+}
+
 .info-link:hover {
-  background: linear-gradient(135deg, rgb(232 240 254 / 78%) 0%, #fff 100%);
-  border-color: #8ab4f8;
-  color: #174ea6;
+  background: var(--sl-action-bg-hover);
+  border-color: var(--sl-action-bg-hover);
+  color: var(--sl-action-text) !important;
+  text-decoration: none !important;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgb(26 115 232 / 15%);
+  box-shadow: var(--sl-action-shadow);
 }
 
 .info-link.info-link-primary {
-  background: linear-gradient(135deg, rgb(218 234 255 / 88%) 0%, rgb(255 255 255 / 92%) 100%);
-  border-color: rgb(160 196 255 / 95%);
-  color: #0f4db6;
+  background: var(--sl-action-bg);
+  border-color: var(--sl-action-border);
+  color: var(--sl-action-text);
+}
+
+.info-link.info-link-primary:link,
+.info-link.info-link-primary:visited {
+  color: var(--sl-action-text) !important;
+  text-decoration: none !important;
 }
 
 .info-link.info-link-primary:hover {
-  background: linear-gradient(135deg, rgb(208 228 255 / 96%) 0%, #fff 100%);
-  border-color: #7aaef7;
-  color: #0b3f95;
+  background: var(--sl-action-bg-hover);
+  border-color: var(--sl-action-bg-hover);
+  color: var(--sl-action-text) !important;
+  text-decoration: none !important;
+}
+
+.info-link:active,
+.info-link.info-link-primary:active {
+  background: var(--sl-action-bg-active);
+  border-color: var(--sl-action-bg-active);
+  color: var(--sl-action-text) !important;
+  text-decoration: none !important;
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+.info-link:focus-visible {
+  outline: 2px solid #8ab4f8;
+  outline-offset: 2px;
 }
 
 /* ============================================
@@ -2704,11 +2765,6 @@ a.btn-primary:visited,
     font-size: 17px;
   }
 
-  .btn-primary {
-    padding: 12px 16px;
-    font-size: 14px;
-  }
-
   .btn-text-link {
     font-size: 13px;
   }
@@ -2798,11 +2854,6 @@ a.btn-primary:visited,
   .store-name {
     font-size: 16px;
     margin: 12px 0 6px;
-  }
-
-  .btn-primary {
-    padding: 12px 14px;
-    font-size: 13px;
   }
 
   .btn-text-link {

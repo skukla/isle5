@@ -31,8 +31,11 @@ function sanitizeUrl(url, fallback = '#') {
 }
 
 function sanitizeTel(value = '') {
-  const digits = String(value).replace(/\D/g, '');
-  return digits ? `tel:${digits}` : '';
+  const normalized = String(value).trim();
+  const digits = normalized.replace(/\D/g, '');
+  if (!digits) return '';
+  const hasLeadingPlus = normalized.startsWith('+');
+  return `tel:${hasLeadingPlus ? '+' : ''}${digits}`;
 }
 
 function getDisplayAddress(store = {}) {
@@ -47,6 +50,58 @@ function getDisplayAddress(store = {}) {
   ].filter(Boolean);
 
   return parts.join(', ');
+}
+
+function getDisplayPhone(store = {}) {
+  const international = store.contact?.internationalPhone || '';
+  const national = store.contact?.phone || '';
+  return international || national;
+}
+
+function getAddressLines(store = {}) {
+  const premise = store.address?.premise?.trim?.() || '';
+  const street = store.address?.street?.trim?.() || '';
+  const city = store.address?.city?.trim?.() || '';
+  const state = store.address?.state?.trim?.() || '';
+  const zip = store.address?.zip?.trim?.() || '';
+  const country = store.address?.country?.trim?.() || '';
+
+  const line1 = [premise, street].filter(Boolean).join(', ') || street || premise;
+  const locality = [city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const line2 = [locality, country].filter(Boolean).join(', ');
+
+  if (line1 || line2) {
+    return {
+      line1: line1 || line2,
+      line2: line1 ? line2 : '',
+    };
+  }
+
+  const fallbackAddress = getDisplayAddress(store);
+  if (!fallbackAddress) {
+    return {
+      line1: 'Address not available',
+      line2: '',
+    };
+  }
+
+  const parts = fallbackAddress
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 1) {
+    return {
+      line1: fallbackAddress,
+      line2: '',
+    };
+  }
+
+  const splitIndex = Math.max(1, Math.ceil(parts.length / 2));
+  return {
+    line1: parts.slice(0, splitIndex).join(', '),
+    line2: parts.slice(splitIndex).join(', '),
+  };
 }
 
 function trackStoreLocatorEvent(action, payload = {}) {
@@ -73,6 +128,7 @@ const PLACES_FIELDS = {
     'addressComponents',
     'location',
     'nationalPhoneNumber',
+    'internationalPhoneNumber',
     'regularOpeningHours',
     'utcOffsetMinutes',
     'rating',
@@ -85,6 +141,7 @@ const PLACES_FIELDS = {
     'addressComponents',
     'location',
     'nationalPhoneNumber',
+    'internationalPhoneNumber',
     'websiteURI',
     'regularOpeningHours',
     'utcOffsetMinutes',
@@ -956,6 +1013,29 @@ function formatTime(time) {
   return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
+function getNextOpenWindow(store, fromDayIndex, includeCurrentDay = false) {
+  const daysOrder = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const maxLookahead = 7;
+
+  for (let offset = includeCurrentDay ? 0 : 1; offset <= maxLookahead; offset += 1) {
+    const nextIndex = (fromDayIndex + offset) % 7;
+    const nextDay = daysOrder[nextIndex];
+    const nextHours = store.hours?.[nextDay];
+    if (nextHours?.open && nextHours?.close) {
+      return {
+        day: nextDay,
+        hours: nextHours,
+      };
+    }
+  }
+
+  return null;
+}
+
+function formatDayLabel(day) {
+  return day.charAt(0).toUpperCase() + day.slice(1);
+}
+
 /**
  * Get today's closing time for display
  * @param {Object} store - Store object
@@ -967,10 +1047,17 @@ function getTodayHours(store) {
   const storeTime = typeof store.utcOffsetMinutes === 'number'
     ? new Date(utcNow + (store.utcOffsetMinutes * 60000))
     : now;
+  const dayIndex = storeTime.getDay();
   const day = storeTime.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
   const hours = store.hours[day];
 
-  if (!hours) return 'Hours not available';
+  if (!hours) {
+    const nextWindow = getNextOpenWindow(store, dayIndex, false);
+    if (nextWindow) {
+      return `Opens ${formatDayLabel(nextWindow.day)} at ${formatTime(nextWindow.hours.open)}`;
+    }
+    return 'Hours not available';
+  }
 
   // Check if 24-hour
   if (hours.open === '00:00' && hours.close === '23:59') {
@@ -981,6 +1068,17 @@ function getTodayHours(store) {
   if (isOpen) {
     return `Open until ${formatTime(hours.close)}`;
   }
+
+  const currentTime = storeTime.toTimeString().slice(0, 5);
+  if (currentTime < hours.open) {
+    return `Opens at ${formatTime(hours.open)}`;
+  }
+
+  const nextWindow = getNextOpenWindow(store, dayIndex, false);
+  if (nextWindow) {
+    return `Opens ${formatDayLabel(nextWindow.day)} at ${formatTime(nextWindow.hours.open)}`;
+  }
+
   return `Opens at ${formatTime(hours.open)}`;
 }
 
@@ -1038,13 +1136,6 @@ function renderStoreCard(store, uiConfig = {}) {
     </svg>
     ${isOpen ? 'Open' : 'Closed'}
   `;
-  if (showDistance && store.distance !== undefined) {
-    const separator = document.createElement('span');
-    separator.classList.add('card-meta-separator');
-    separator.setAttribute('aria-hidden', 'true');
-    separator.textContent = '•';
-    metaStrip.appendChild(separator);
-  }
   metaStrip.appendChild(statusBadge);
 
   topRow.appendChild(metaStrip);
@@ -1114,18 +1205,35 @@ function renderStoreCard(store, uiConfig = {}) {
   // Address (always visible with fallback)
   const address = document.createElement('address');
   address.classList.add('card-address');
-  const displayAddress = getDisplayAddress(store);
-  if (displayAddress) {
-    address.textContent = displayAddress;
+  const { line1: addressLine1, line2: addressLine2 } = getAddressLines(store);
+  const line1 = document.createElement('span');
+  line1.classList.add('card-address-line', 'card-address-line-primary');
+  line1.textContent = addressLine1;
+
+  const line2 = document.createElement('span');
+  line2.classList.add('card-address-line', 'card-address-line-secondary');
+  if (addressLine2) {
+    line2.textContent = addressLine2;
   } else {
-    address.textContent = 'Address not available';
+    line2.classList.add('is-empty');
+    line2.setAttribute('aria-hidden', 'true');
+    line2.textContent = '\u00A0';
   }
+
+  address.setAttribute('aria-label', addressLine2 ? `${addressLine1}, ${addressLine2}` : addressLine1);
+  address.appendChild(line1);
+  address.appendChild(line2);
   card.appendChild(address);
 
   const phone = document.createElement('div');
   phone.classList.add('card-phone');
-  if (store.contact?.phone) {
-    phone.innerHTML = `<a href="tel:${store.contact.phone.replace(/\D/g, '')}">${store.contact.phone}</a>`;
+  const displayPhone = getDisplayPhone(store);
+  const phoneHref = sanitizeTel(displayPhone || '');
+  if (displayPhone && phoneHref) {
+    const phoneLink = document.createElement('a');
+    phoneLink.href = phoneHref;
+    phoneLink.textContent = displayPhone;
+    phone.appendChild(phoneLink);
   } else {
     phone.classList.add('card-slot-empty');
     phone.textContent = 'Phone unavailable';
@@ -1169,14 +1277,18 @@ function renderStoreCard(store, uiConfig = {}) {
 
   const hours = document.createElement('div');
   hours.classList.add('card-hours');
-  if (hoursText && hoursText !== 'Hours not available') {
+  const hasAnyHours = store.hours && Object.keys(store.hours).length > 0;
+  if (hasAnyHours) {
     hours.classList.add(isOpen ? 'open' : 'closed');
     const statusPrefix = isOpen ? 'Open' : 'Closed';
-    hours.setAttribute('aria-label', `${statusPrefix}. ${hoursText}`);
+    const statusHoursText = hoursText && hoursText !== 'Hours not available'
+      ? ` · ${hoursText}`
+      : '';
+    hours.setAttribute('aria-label', `${statusPrefix}${statusHoursText}`);
     hours.innerHTML = `
       <div class="card-hours-main">
         <span class="card-hours-dot" aria-hidden="true"></span>
-        <span class="card-hours-text">${statusPrefix} · ${escapeHtml(hoursText)}</span>
+        <span class="card-hours-text">${statusPrefix}${escapeHtml(statusHoursText)}</span>
       </div>
     `;
   } else {
@@ -1199,7 +1311,7 @@ function renderStoreCard(store, uiConfig = {}) {
 
   // Primary action: Get Directions button (full-width)
   const directionsBtn = document.createElement('a');
-  directionsBtn.classList.add('btn-primary');
+  directionsBtn.classList.add('info-link', 'info-link-primary');
   if (store.placeId) {
     directionsBtn.href = sanitizeUrl(`https://www.google.com/maps/place/?q=place_id:${store.placeId}`);
   } else {
@@ -1224,7 +1336,7 @@ function renderStoreCard(store, uiConfig = {}) {
 
   if (store.contact?.website) {
     const websiteBtn = document.createElement('a');
-    websiteBtn.classList.add('btn-secondary');
+    websiteBtn.classList.add('info-link');
     websiteBtn.href = sanitizeUrl(store.contact.website);
     websiteBtn.target = '_blank';
     websiteBtn.rel = 'noopener noreferrer';
@@ -1882,8 +1994,9 @@ function createInfoWindowContent(store, uiConfig = {}) {
   const maxVisibleInfoTags = 4;
   const safeStoreName = escapeHtml(store.name || 'Store');
   const safeAddress = escapeHtml(getDisplayAddress(store) || 'Address not available');
-  const safePhoneText = escapeHtml(store.contact?.phone || '');
-  const safePhoneHref = sanitizeTel(store.contact?.phone || '');
+  const displayPhone = getDisplayPhone(store);
+  const safePhoneText = escapeHtml(displayPhone || '');
+  const safePhoneHref = sanitizeTel(displayPhone || '');
   const safeWebsiteHref = sanitizeUrl(store.contact?.website || '');
   const safeDirectionsHref = sanitizeUrl(store.directionsUrl || '#');
   const isOpen = isStoreOpen(store);
@@ -2093,7 +2206,7 @@ function createInfoWindowContent(store, uiConfig = {}) {
 
   // Build phone HTML
   let phoneHTML = '';
-  if (store.contact?.phone && safePhoneHref) {
+  if (displayPhone && safePhoneHref) {
     phoneHTML = `
       <div class="info-row">
         <svg class="info-icon-svg" viewBox="0 0 24 24" width="20" height="20">
@@ -2493,6 +2606,9 @@ function buildPlacePayload(place, detailLevel, config) {
     },
     contact: {
       phone: place.nationalPhoneNumber || '',
+      internationalPhone: place.internationalPhoneNumber
+        || place.international_phone_number
+        || '',
       email: '',
       website: place.websiteURI || '',
     },
@@ -2550,7 +2666,9 @@ async function enrichStoreWithPlacesData(store, config, detailLevel = 'lite') {
   const shouldBypassCachedPhotos = detailLevel === 'rich'
     && config.enablePhotos
     && (!Array.isArray(cachedPayload?.photos) || cachedPayload.photos.length === 0);
-  if (cachedPayload && !shouldBypassCachedPhotos) {
+  const shouldBypassCachedPhone = Boolean(cachedPayload?.contact?.phone)
+    && !cachedPayload?.contact?.internationalPhone;
+  if (cachedPayload && !shouldBypassCachedPhotos && !shouldBypassCachedPhone) {
     return applyPlacePayloadToStore(store, cachedPayload);
   }
 
