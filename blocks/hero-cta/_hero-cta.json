@@ -12,6 +12,11 @@
       }
     }
   ],
-  "models": [],
+  "models": [
+    {
+      "id": "hero-cta",
+      "fields": []
+    }
+  ],
   "filters": []
 }

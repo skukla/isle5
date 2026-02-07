@@ -337,6 +337,10 @@
     ]
   },
   {
+    "id": "hero-cta",
+    "fields": []
+  },
+  {
     "id": "hero",
     "fields": [
       {
