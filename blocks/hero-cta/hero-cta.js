@@ -79,6 +79,86 @@ function normalizeButtonWidth(value, fallback) {
   return fallback;
 }
 
+function normalizeSidebar(value) {
+  const val = (value || '').toLowerCase();
+  if (['left', 'right'].includes(val)) return val;
+  if (val === 'true') return 'left';
+  return '';
+}
+
+/**
+ * Separate nav rows from slide rows.
+ * Nav rows have "nav" as the text in Column 1.
+ */
+function separateNavRows(rows) {
+  const slideRows = [];
+  const navRows = [];
+
+  rows.forEach((row) => {
+    const firstCell = row.children[0];
+    const marker = (firstCell?.textContent || '').trim().toLowerCase();
+    if (marker === 'nav') {
+      navRows.push(row);
+    } else {
+      slideRows.push(row);
+    }
+  });
+
+  return { slideRows, navRows };
+}
+
+/**
+ * Build sidebar navigation from nav rows.
+ * Column 2: Link text or Text|URL format, or existing <a> tags
+ */
+function buildSidebar(navRows) {
+  const nav = document.createElement('nav');
+  nav.className = 'hero-cta-sidebar';
+  nav.setAttribute('aria-label', 'Hero navigation');
+
+  const list = document.createElement('ul');
+  list.className = 'hero-cta-sidebar-list';
+
+  navRows.forEach((row) => {
+    const linkCell = row.children[1];
+    if (!linkCell) return;
+
+    const li = document.createElement('li');
+    li.className = 'hero-cta-sidebar-item';
+
+    // Check for existing <a> tag
+    const existingLink = linkCell.querySelector('a');
+    if (existingLink) {
+      existingLink.className = 'hero-cta-sidebar-link';
+      li.append(existingLink);
+    } else {
+      // Parse Text|URL format
+      const text = linkCell.textContent.trim();
+      if (!text) return;
+
+      const parts = text.split('|');
+      const linkText = parts[0].trim();
+      const linkUrl = parts[1]?.trim() || '#';
+
+      const link = document.createElement('a');
+      link.href = linkUrl;
+      link.textContent = linkText;
+      link.className = 'hero-cta-sidebar-link';
+
+      if (linkUrl === '#') {
+        link.setAttribute('aria-disabled', 'true');
+      }
+
+      li.append(link);
+    }
+
+    list.append(li);
+  });
+
+  nav.append(list);
+  return nav;
+}
+
 function extractInterval(rows) {
   const lastRow = rows[rows.length - 1];
   if (!lastRow) return { interval: DEFAULT_INTERVAL, rows };
@@ -350,9 +430,15 @@ export default function decorate(block) {
     buttonWidth: block.dataset.buttonWidth
       || section?.dataset.dataButtonWidth
       || 'medium',
+    sidebar: block.dataset.sidebar
+      || section?.dataset.dataSidebar
+      || '',
   };
 
-  const { interval, rows: slideRows } = extractInterval(rows);
+  const { interval, rows: allRows } = extractInterval(rows);
+
+  // Separate nav rows (Column 1 = "nav") from slide rows
+  const { slideRows, navRows } = separateNavRows(allRows);
 
   const wrapper = document.createElement('div');
   wrapper.className = 'hero-cta-slides';
@@ -361,13 +447,32 @@ export default function decorate(block) {
     wrapper.append(buildSlide(row, index === 0, config));
   });
 
-  block.replaceChildren(wrapper);
+  // Build sidebar if enabled and nav rows exist
+  const sidebarPosition = normalizeSidebar(config.sidebar);
+  if (sidebarPosition && navRows.length > 0) {
+    const sidebar = buildSidebar(navRows);
+    const layout = document.createElement('div');
+    layout.className = 'hero-cta-layout';
+
+    if (sidebarPosition === 'left') {
+      layout.append(sidebar, wrapper);
+    } else {
+      layout.append(wrapper, sidebar);
+    }
+
+    block.replaceChildren(layout);
+  } else {
+    block.replaceChildren(wrapper);
+  }
 
   // Apply normalized configuration to block
   const align = normalizeAlign(config.align, 'right');
   const vertical = normalizeVertical(config.vertical, 'bottom');
   const size = normalizeSize(config.size, 'tall');
-  const gradientIntensity = normalizeGradientIntensity(config.gradientIntensity, 'medium');
+  const gradientIntensity = normalizeGradientIntensity(
+    config.gradientIntensity,
+    'medium',
+  );
   const buttonStyle = normalizeButtonStyle(config.buttonStyle, 'default');
   const buttonWidth = normalizeButtonWidth(config.buttonWidth, 'medium');
 
@@ -378,6 +483,10 @@ export default function decorate(block) {
   block.dataset.gradientIntensity = gradientIntensity;
   block.dataset.buttonStyle = buttonStyle;
   block.dataset.buttonWidth = buttonWidth;
+
+  if (sidebarPosition) {
+    block.dataset.sidebar = sidebarPosition;
+  }
 
   const slides = [...block.querySelectorAll('.hero-cta-slide')];
   if (slides.length) slides[0].classList.add('is-active');
