@@ -1,0 +1,910 @@
+.promotional-hero {
+  --promotional-hero-background: transparent;
+  --promotional-hero-card-width: 500px;
+  --promotional-hero-card-min-height: 500px;
+  --promotional-hero-card-radius: 16px;
+  --promotional-hero-card-gap: var(--spacing-large);
+  --promotional-hero-band-padding-y: var(--spacing-xbig);
+  --promotional-hero-band-padding-x: 0;
+  --promotional-hero-content-bg: var(--color-neutral-50);
+  --promotional-hero-content-color: var(--color-neutral-900);
+  --promotional-hero-content-border-color: transparent;
+  --promotional-hero-content-border-width: 0;
+  --promotional-hero-content-padding-y: var(--spacing-small);
+  --promotional-hero-content-padding-x: var(--spacing-medium);
+  --promotional-hero-content-offset: -20px;
+  --promotional-hero-content-max-width: 86%;
+  --promotional-hero-content-min-width: 280px;
+  --promotional-hero-content-radius: 6px;
+  --promotional-hero-content-shadow: 0 4px 20px rgb(0 0 0 / 15%);
+  --promotional-hero-grid-max-width: none;
+  --promotional-hero-button-bg: var(--color-brand-500);
+  --promotional-hero-button-text: var(--color-neutral-50);
+  --promotional-hero-button-border: var(--color-brand-500);
+  --promotional-hero-button-border-width: var(--shape-border-width-3);
+  --promotional-hero-button-hover-bg: var(--color-brand-600);
+  --promotional-hero-button-hover-border: var(--color-brand-600);
+  --promotional-hero-button-hover-text: var(--color-neutral-50);
+  --promotional-hero-button-transform: none;
+  --promotional-hero-button-font-size: 1rem;
+  --promotional-hero-button-font-weight: 600;
+  --promotional-hero-button-shadow: none;
+  --promotional-hero-image-ratio: 4 / 5;
+  --promotional-hero-image-object-position: center;
+  --promotional-hero-image-shadow: 0 4px 20px rgb(0 0 0 / 10%);
+  --promotional-hero-image-shadow-hover: 0 12px 40px rgb(0 0 0 / 20%);
+  --promotional-hero-image-overlay-color: var(--color-neutral-900);
+  --promotional-hero-image-overlay-opacity: 0;
+  --promotional-hero-image-hover-scale: 1.04;
+  --promotional-hero-panel-hover-translate-y: -4px;
+  --promotional-hero-card-border-color: transparent;
+  --promotional-hero-card-border-width: 0;
+
+  background: var(--promotional-hero-background);
+  border-radius: var(--shape-border-radius-2);
+  box-sizing: border-box;
+  display: block;
+  overflow: hidden;
+  padding: var(--promotional-hero-band-padding-y) var(--promotional-hero-band-padding-x);
+  width: 100%;
+}
+
+.promotional-hero[data-full-width='true'] {
+  border-radius: 0;
+}
+
+.promotional-hero[data-density='compact'] {
+  --promotional-hero-card-gap: var(--spacing-medium);
+  --promotional-hero-band-padding-y: var(--spacing-large);
+  --promotional-hero-content-padding-y: var(--spacing-xsmall);
+  --promotional-hero-content-padding-x: var(--spacing-small);
+}
+
+.promotional-hero[data-density='spacious'] {
+  --promotional-hero-card-gap: var(--spacing-xbig);
+  --promotional-hero-band-padding-y: calc(var(--spacing-xbig) * 1.4);
+  --promotional-hero-content-padding-y: var(--spacing-medium);
+  --promotional-hero-content-padding-x: var(--spacing-large);
+}
+
+.promotional-hero[data-gap='small'] {
+  --promotional-hero-card-gap: var(--spacing-medium);
+}
+
+.promotional-hero[data-gap='medium'] {
+  --promotional-hero-card-gap: var(--spacing-large);
+}
+
+.promotional-hero[data-gap='large'] {
+  --promotional-hero-card-gap: var(--spacing-xbig);
+}
+
+.promotional-hero[data-card-width='small'] {
+  --promotional-hero-card-width: 360px;
+  --promotional-hero-card-min-height: 420px;
+}
+
+.promotional-hero[data-card-width='medium'] {
+  --promotional-hero-card-width: 500px;
+  --promotional-hero-card-min-height: 500px;
+}
+
+.promotional-hero[data-card-width='large'] {
+  --promotional-hero-card-width: 620px;
+  --promotional-hero-card-min-height: 560px;
+}
+
+.promotional-hero[data-card-height='auto'] {
+  /* uses width + ratio + current min-height defaults */
+}
+
+.promotional-hero[data-card-height='short'] {
+  --promotional-hero-card-min-height: 380px;
+  --promotional-hero-content-offset: -14px;
+}
+
+.promotional-hero[data-card-height='medium'] {
+  --promotional-hero-card-min-height: 500px;
+  --promotional-hero-content-offset: -20px;
+}
+
+.promotional-hero[data-card-height='tall'] {
+  --promotional-hero-card-min-height: 620px;
+  --promotional-hero-content-offset: -24px;
+}
+
+.promotional-hero[data-image-ratio='portrait'] {
+  --promotional-hero-image-ratio: 4 / 5;
+}
+
+.promotional-hero[data-image-ratio='square'] {
+  --promotional-hero-image-ratio: 1 / 1;
+}
+
+.promotional-hero[data-image-ratio='landscape'] {
+  --promotional-hero-image-ratio: 16 / 9;
+  --promotional-hero-content-max-width: 90%;
+  --promotional-hero-content-min-width: 220px;
+  --promotional-hero-content-offset: -10px;
+  --promotional-hero-content-padding-y: var(--spacing-xsmall);
+  --promotional-hero-content-padding-x: var(--spacing-small);
+}
+
+.promotional-hero-container {
+  display: grid;
+  gap: var(--promotional-hero-card-gap);
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--promotional-hero-card-width)), var(--promotional-hero-card-width))
+  );
+  justify-content: center;
+  max-width: var(--promotional-hero-grid-max-width);
+  width: 100%;
+}
+
+.promotional-hero[data-columns='1'] .promotional-hero-container {
+  grid-template-columns: minmax(0, var(--promotional-hero-card-width));
+}
+
+.promotional-hero[data-columns='2'] .promotional-hero-container {
+  grid-template-columns: repeat(2, minmax(0, var(--promotional-hero-card-width)));
+}
+
+.promotional-hero[data-columns='3'] .promotional-hero-container {
+  grid-template-columns: repeat(3, minmax(0, var(--promotional-hero-card-width)));
+}
+
+.promotional-hero[data-align='left'] .promotional-hero-container {
+  justify-content: start;
+}
+
+.promotional-hero[data-align='center'] .promotional-hero-container {
+  justify-content: center;
+}
+
+.promotional-hero[data-align='right'] .promotional-hero-container {
+  justify-content: end;
+}
+
+.promotional-hero-card {
+  aspect-ratio: var(--promotional-hero-image-ratio);
+  border: var(--promotional-hero-card-border-width) solid var(--promotional-hero-card-border-color);
+  border-radius: var(--promotional-hero-card-radius);
+  box-sizing: border-box;
+  min-height: var(--promotional-hero-card-min-height);
+  overflow: visible;
+  position: relative;
+}
+
+.promotional-hero[data-card-radius='sharp'] {
+  --promotional-hero-card-radius: 0;
+}
+
+.promotional-hero[data-card-radius='soft'] {
+  --promotional-hero-card-radius: 10px;
+}
+
+.promotional-hero[data-card-radius='default'] {
+  --promotional-hero-card-radius: 16px;
+}
+
+.promotional-hero[data-card-radius='rounded-lg'] {
+  --promotional-hero-card-radius: 24px;
+}
+
+.promotional-hero-image {
+  border-radius: var(--promotional-hero-card-radius);
+  box-shadow: var(--promotional-hero-image-shadow);
+  inset: 0;
+  overflow: hidden;
+  position: absolute;
+  transition: box-shadow 0.3s ease;
+  z-index: 1;
+}
+
+.promotional-hero-image::after {
+  background: var(--promotional-hero-image-overlay-color);
+  content: '';
+  inset: 0;
+  opacity: var(--promotional-hero-image-overlay-opacity);
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.3s ease;
+  z-index: 2;
+}
+
+.promotional-hero-image picture,
+.promotional-hero-image img {
+  height: 100%;
+  width: 100%;
+}
+
+.promotional-hero-image img {
+  object-fit: cover;
+  object-position: var(--promotional-hero-image-object-position);
+  transition: transform 0.3s ease;
+}
+
+.promotional-hero[data-image-fit='contain'] .promotional-hero-image img {
+  background: color-mix(in srgb, var(--promotional-hero-background) 82%, #fff);
+  object-fit: contain;
+}
+
+.promotional-hero-card:hover .promotional-hero-image {
+  box-shadow: var(--promotional-hero-image-shadow-hover);
+}
+
+.promotional-hero-card:hover .promotional-hero-image img {
+  transform: scale(var(--promotional-hero-image-hover-scale));
+}
+
+.promotional-hero-whitebox {
+  background: var(--promotional-hero-content-bg);
+  border: var(--promotional-hero-content-border-width) solid var(--promotional-hero-content-border-color);
+  border-radius: var(--promotional-hero-content-radius);
+  bottom: var(--promotional-hero-content-offset);
+  box-shadow: var(--promotional-hero-content-shadow);
+  box-sizing: border-box;
+  color: var(--promotional-hero-content-color);
+  left: 50%;
+  max-width: var(--promotional-hero-content-max-width);
+  min-width: var(--promotional-hero-content-min-width);
+  padding: var(--promotional-hero-content-padding-y) var(--promotional-hero-content-padding-x);
+  position: absolute;
+  text-align: center;
+  transform: translateX(-50%);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: fit-content;
+  z-index: 3;
+}
+
+.promotional-hero[data-content-style='flush'] .promotional-hero-whitebox {
+  border-radius: 0;
+  bottom: 0;
+  max-width: 100%;
+  min-width: 100%;
+}
+
+.promotional-hero[data-content-style='inset'] .promotional-hero-whitebox {
+  bottom: var(--spacing-medium);
+}
+
+.promotional-hero-card:hover .promotional-hero-whitebox {
+  box-shadow: 0 8px 30px rgb(0 0 0 / 20%);
+  transform: translateX(-50%) translateY(var(--promotional-hero-panel-hover-translate-y));
+}
+
+.promotional-hero[data-content-align='left'] .promotional-hero-whitebox {
+  text-align: left;
+}
+
+.promotional-hero[data-content-align='right'] .promotional-hero-whitebox {
+  text-align: right;
+}
+
+.promotional-hero[data-image-ratio='landscape'] .promotional-hero-whitebox {
+  max-width: min(90%, 480px);
+  overflow: hidden;
+}
+
+.promotional-hero[data-panel-offset='none'] {
+  --promotional-hero-content-offset: 0;
+}
+
+.promotional-hero[data-panel-offset='small'] {
+  --promotional-hero-content-offset: -8px;
+}
+
+.promotional-hero[data-panel-offset='medium'] {
+  --promotional-hero-content-offset: -20px;
+}
+
+.promotional-hero[data-panel-offset='large'] {
+  --promotional-hero-content-offset: -32px;
+}
+
+.promotional-hero[data-panel-offset='xlarge'] {
+  --promotional-hero-content-offset: -44px;
+}
+
+.promotional-hero[data-panel-width='compact'] {
+  --promotional-hero-content-max-width: 72%;
+  --promotional-hero-content-min-width: 220px;
+}
+
+.promotional-hero[data-panel-width='standard'] {
+  --promotional-hero-content-max-width: 86%;
+  --promotional-hero-content-min-width: 280px;
+}
+
+.promotional-hero[data-panel-width='wide'] {
+  --promotional-hero-content-max-width: 96%;
+  --promotional-hero-content-min-width: 320px;
+}
+
+.promotional-hero[data-content-border-style='none'] {
+  --promotional-hero-content-border-width: 0;
+}
+
+.promotional-hero[data-content-border-style='subtle'] {
+  --promotional-hero-content-border-color: color-mix(in srgb, var(--promotional-hero-content-color) 18%, transparent);
+  --promotional-hero-content-border-width: 1px;
+}
+
+.promotional-hero[data-content-border-style='strong'] {
+  --promotional-hero-content-border-color: color-mix(in srgb, var(--promotional-hero-content-color) 55%, transparent);
+  --promotional-hero-content-border-width: 2px;
+}
+
+.promotional-hero[data-content-border-style='brand'] {
+  --promotional-hero-content-border-color: var(--color-brand-500);
+  --promotional-hero-content-border-width: 2px;
+}
+
+.promotional-hero[data-content-shadow='none'] {
+  --promotional-hero-content-shadow: none;
+}
+
+.promotional-hero[data-content-shadow='soft'] {
+  --promotional-hero-content-shadow: 0 4px 20px rgb(0 0 0 / 15%);
+}
+
+.promotional-hero[data-content-shadow='medium'] {
+  --promotional-hero-content-shadow: 0 8px 28px rgb(0 0 0 / 22%);
+}
+
+.promotional-hero[data-content-shadow='strong'] {
+  --promotional-hero-content-shadow: 0 12px 36px rgb(0 0 0 / 30%);
+}
+
+.promotional-hero[data-content-radius='sharp'] {
+  --promotional-hero-content-radius: 0;
+}
+
+.promotional-hero[data-content-radius='soft'] {
+  --promotional-hero-content-radius: 10px;
+}
+
+.promotional-hero[data-content-radius='default'] {
+  --promotional-hero-content-radius: 6px;
+}
+
+.promotional-hero[data-content-radius='rounded-lg'] {
+  --promotional-hero-content-radius: 16px;
+}
+
+.promotional-hero[data-content-radius='pill'] {
+  --promotional-hero-content-radius: 999px;
+}
+
+.promotional-hero[data-card-border-style='none'] {
+  --promotional-hero-card-border-color: transparent;
+}
+
+.promotional-hero[data-card-border-style='subtle'] {
+  --promotional-hero-card-border-color: var(--color-neutral-300);
+}
+
+.promotional-hero[data-card-border-style='strong'] {
+  --promotional-hero-card-border-color: var(--color-neutral-700);
+}
+
+.promotional-hero[data-card-border-style='brand'] {
+  --promotional-hero-card-border-color: var(--color-brand-500);
+}
+
+.promotional-hero[data-image-position='left'] {
+  --promotional-hero-image-object-position: left center;
+}
+
+.promotional-hero[data-image-position='center'] {
+  --promotional-hero-image-object-position: center center;
+}
+
+.promotional-hero[data-image-position='right'] {
+  --promotional-hero-image-object-position: right center;
+}
+
+.promotional-hero[data-image-position='top'] {
+  --promotional-hero-image-object-position: center top;
+}
+
+.promotional-hero[data-image-position='bottom'] {
+  --promotional-hero-image-object-position: center bottom;
+}
+
+.promotional-hero[data-image-shadow='none'] {
+  --promotional-hero-image-shadow: 0 0 0 rgb(0 0 0 / 0%);
+  --promotional-hero-image-shadow-hover: 0 0 0 rgb(0 0 0 / 0%);
+}
+
+.promotional-hero[data-image-shadow='soft'] {
+  --promotional-hero-image-shadow: 0 4px 20px rgb(0 0 0 / 10%);
+  --promotional-hero-image-shadow-hover: 0 12px 40px rgb(0 0 0 / 20%);
+}
+
+.promotional-hero[data-image-shadow='strong'] {
+  --promotional-hero-image-shadow: 0 12px 34px rgb(0 0 0 / 24%);
+  --promotional-hero-image-shadow-hover: 0 18px 48px rgb(0 0 0 / 34%);
+}
+
+.promotional-hero[data-image-overlay='none'] {
+  --promotional-hero-image-overlay-opacity: 0;
+}
+
+.promotional-hero[data-image-overlay='light'] {
+  --promotional-hero-image-overlay-opacity: 0.16;
+}
+
+.promotional-hero[data-image-overlay='medium'] {
+  --promotional-hero-image-overlay-opacity: 0.28;
+}
+
+.promotional-hero[data-image-overlay='strong'] {
+  --promotional-hero-image-overlay-opacity: 0.42;
+}
+
+.promotional-hero[data-image-overlay='brand-tint'] {
+  --promotional-hero-image-overlay-color: var(--color-brand-500);
+  --promotional-hero-image-overlay-opacity: 0.3;
+}
+
+.promotional-hero[data-hover-effect='none'] {
+  --promotional-hero-image-hover-scale: 1;
+  --promotional-hero-panel-hover-translate-y: 0;
+}
+
+.promotional-hero[data-hover-effect='subtle'] {
+  --promotional-hero-image-hover-scale: 1.04;
+  --promotional-hero-panel-hover-translate-y: -4px;
+}
+
+.promotional-hero[data-hover-effect='lift'] {
+  --promotional-hero-image-hover-scale: 1.02;
+  --promotional-hero-panel-hover-translate-y: -8px;
+}
+
+.promotional-hero-description p {
+  margin: 0;
+}
+
+.promotional-hero-description p + p {
+  margin-top: 4px;
+}
+
+.promotional-hero-description {
+  margin: 0 0 var(--spacing-small);
+}
+
+.promotional-hero[data-image-ratio='landscape'] .promotional-hero-description {
+  margin-bottom: var(--spacing-xsmall);
+}
+
+.promotional-hero[data-image-ratio='landscape'] .promotional-hero-description p {
+  overflow-wrap: anywhere;
+}
+
+.promotional-hero-button {
+  background-color: var(--promotional-hero-button-bg);
+  border: var(--promotional-hero-button-border-width) solid var(--promotional-hero-button-border);
+  border-radius: var(--shape-border-radius-2);
+  color: var(--promotional-hero-button-text);
+  display: inline-grid;
+  font: var(--type-button-2-font);
+  font-size: var(--promotional-hero-button-font-size);
+  font-weight: var(--promotional-hero-button-font-weight);
+  height: 44px;
+  place-items: center;
+  letter-spacing: var(--type-button-2-letter-spacing);
+  line-height: 1;
+  min-width: 44px;
+  padding: 0 24px;
+  text-decoration: none;
+  text-transform: var(--promotional-hero-button-transform);
+  transition: all 0.3s ease;
+  box-shadow: var(--promotional-hero-button-shadow);
+}
+
+.promotional-hero-button:hover {
+  background-color: var(--promotional-hero-button-hover-bg);
+  border-color: var(--promotional-hero-button-hover-border);
+  color: var(--promotional-hero-button-hover-text);
+  text-decoration: none;
+}
+
+.promotional-hero-button:focus-visible {
+  outline: 3px solid var(--promotional-hero-button-border);
+  outline-offset: 2px;
+}
+
+.promotional-hero .promotional-hero-button:any-link,
+.promotional-hero .promotional-hero-button:focus {
+  color: var(--promotional-hero-button-text);
+}
+
+.promotional-hero .promotional-hero-button:hover {
+  color: var(--promotional-hero-button-hover-text);
+}
+
+.promotional-hero[data-button-style='default'] .promotional-hero-button {
+  border-radius: var(--shape-border-radius-2);
+}
+
+.promotional-hero[data-button-style='pill'] .promotional-hero-button {
+  border-radius: 999px;
+  padding: 0 28px;
+}
+
+.promotional-hero[data-button-style='sharp'] .promotional-hero-button {
+  border-radius: 0;
+}
+
+.promotional-hero[data-button-style='soft'] .promotional-hero-button {
+  background-color: color-mix(in srgb, var(--promotional-hero-button-bg) 92%, #fff);
+  border-radius: 12px;
+}
+
+.promotional-hero[data-button-style='rounded-lg'] .promotional-hero-button {
+  border-radius: 20px;
+  padding: 0 30px;
+}
+
+.promotional-hero[data-button-style='outline'] .promotional-hero-button {
+  background-color: transparent;
+  border-color: var(--promotional-hero-button-border);
+  color: var(--promotional-hero-button-border);
+}
+
+.promotional-hero[data-button-style='ghost'] .promotional-hero-button {
+  background-color: color-mix(in srgb, var(--promotional-hero-button-bg) 16%, transparent);
+  border-color: color-mix(in srgb, var(--promotional-hero-button-bg) 42%, transparent);
+}
+
+.promotional-hero[data-button-style='elevated'] .promotional-hero-button {
+  box-shadow: 0 8px 22px rgb(0 0 0 / 24%);
+}
+
+.promotional-hero[data-button-style='minimal'] .promotional-hero-button {
+  background-color: transparent;
+  border-color: color-mix(in srgb, var(--promotional-hero-button-border) 42%, transparent);
+  border-width: 1px;
+}
+
+.promotional-hero[data-button-style='glass'] .promotional-hero-button {
+  backdrop-filter: blur(6px);
+  background-color: color-mix(in srgb, var(--promotional-hero-button-bg) 22%, transparent);
+  border-color: color-mix(in srgb, var(--promotional-hero-button-border) 50%, transparent);
+}
+
+.promotional-hero[data-button-style='gradient'] .promotional-hero-button {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--promotional-hero-button-bg) 88%, #fff),
+    color-mix(in srgb, var(--promotional-hero-button-bg) 78%, #000)
+  );
+  border-color: color-mix(in srgb, var(--promotional-hero-button-border) 86%, #000);
+}
+
+.promotional-hero[data-button-style='link'] .promotional-hero-button {
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  height: auto;
+  min-width: auto;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.promotional-hero[data-button-width='auto'] .promotional-hero-button {
+  min-width: 140px;
+  width: auto;
+}
+
+.promotional-hero[data-button-width='narrow'] .promotional-hero-button {
+  padding: 0 24px;
+  width: 180px;
+}
+
+.promotional-hero[data-button-width='medium'] .promotional-hero-button {
+  padding: 0 28px;
+  width: 200px;
+}
+
+.promotional-hero[data-button-width='wide'] .promotional-hero-button {
+  padding: 0 36px;
+  width: 260px;
+}
+
+.promotional-hero[data-button-width='fluid'] .promotional-hero-button {
+  max-width: 420px;
+  width: 100%;
+}
+
+.promotional-hero[data-image-ratio='landscape'] .promotional-hero-button {
+  min-width: 132px;
+  padding: 0 18px;
+}
+
+.promotional-hero[data-image-ratio='landscape'][data-button-width='narrow'] .promotional-hero-button {
+  width: 160px;
+}
+
+.promotional-hero[data-image-ratio='landscape'][data-button-width='medium'] .promotional-hero-button {
+  width: 180px;
+}
+
+.promotional-hero[data-image-ratio='landscape'][data-button-width='wide'] .promotional-hero-button {
+  width: 220px;
+}
+
+.promotional-hero[data-button-style='outline'] .promotional-hero-button:hover {
+  background-color: var(--promotional-hero-button-hover-bg);
+  border-color: var(--promotional-hero-button-hover-border);
+  color: var(--promotional-hero-button-hover-text);
+}
+
+.promotional-hero[data-button-style='ghost'] .promotional-hero-button:hover {
+  background-color: color-mix(in srgb, var(--promotional-hero-button-bg) 28%, transparent);
+  border-color: color-mix(in srgb, var(--promotional-hero-button-bg) 60%, transparent);
+}
+
+.promotional-hero[data-button-style='elevated'] .promotional-hero-button:hover {
+  box-shadow: 0 12px 28px rgb(0 0 0 / 30%);
+  transform: translateY(-2px);
+}
+
+.promotional-hero[data-button-style='minimal'] .promotional-hero-button:hover {
+  background-color: color-mix(in srgb, var(--promotional-hero-button-bg) 10%, transparent);
+  border-color: color-mix(in srgb, var(--promotional-hero-button-border) 65%, transparent);
+}
+
+.promotional-hero[data-button-style='glass'] .promotional-hero-button:hover {
+  background-color: color-mix(in srgb, var(--promotional-hero-button-bg) 34%, transparent);
+  border-color: color-mix(in srgb, var(--promotional-hero-button-border) 68%, transparent);
+}
+
+.promotional-hero[data-button-style='gradient'] .promotional-hero-button:hover {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--promotional-hero-button-hover-bg) 90%, #fff),
+    color-mix(in srgb, var(--promotional-hero-button-hover-bg) 80%, #000)
+  );
+  border-color: color-mix(in srgb, var(--promotional-hero-button-hover-border) 88%, #000);
+}
+
+.promotional-hero[data-button-style='link'] .promotional-hero-button:hover {
+  background-color: transparent;
+  border-color: transparent;
+  text-decoration-thickness: 2px;
+  transform: none;
+}
+
+.promotional-hero[data-button-font-size='sm'] {
+  --promotional-hero-button-font-size: 0.875rem;
+}
+
+.promotional-hero[data-button-font-size='md'] {
+  --promotional-hero-button-font-size: 1rem;
+}
+
+.promotional-hero[data-button-font-size='lg'] {
+  --promotional-hero-button-font-size: 1.1rem;
+}
+
+.promotional-hero[data-button-font-weight='400'] {
+  --promotional-hero-button-font-weight: 400;
+}
+
+.promotional-hero[data-button-font-weight='500'] {
+  --promotional-hero-button-font-weight: 500;
+}
+
+.promotional-hero[data-button-font-weight='600'] {
+  --promotional-hero-button-font-weight: 600;
+}
+
+.promotional-hero[data-button-font-weight='700'] {
+  --promotional-hero-button-font-weight: 700;
+}
+
+.promotional-hero[data-button-shadow='none'] {
+  --promotional-hero-button-shadow: none;
+}
+
+.promotional-hero[data-button-shadow='soft'] {
+  --promotional-hero-button-shadow: 0 4px 12px rgb(0 0 0 / 18%);
+}
+
+.promotional-hero[data-button-shadow='medium'] {
+  --promotional-hero-button-shadow: 0 6px 18px rgb(0 0 0 / 24%);
+}
+
+.promotional-hero[data-button-shadow='strong'] {
+  --promotional-hero-button-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+}
+
+.promotional-hero[data-button-hover-style='none'] .promotional-hero-button:hover {
+  background-color: var(--promotional-hero-button-bg);
+  border-color: var(--promotional-hero-button-border);
+  color: var(--promotional-hero-button-text);
+  transform: none;
+}
+
+.promotional-hero[data-button-hover-style='inverse'] .promotional-hero-button:hover {
+  background-color: var(--promotional-hero-button-text);
+  border-color: var(--promotional-hero-button-text);
+  color: var(--promotional-hero-button-bg);
+}
+
+.promotional-hero[data-button-hover-style='darken'] .promotional-hero-button:hover {
+  background-color: var(--promotional-hero-button-hover-bg);
+  border-color: var(--promotional-hero-button-hover-border);
+  color: var(--promotional-hero-button-hover-text);
+}
+
+.promotional-hero[data-button-hover-style='lift'] .promotional-hero-button:hover {
+  background-color: var(--promotional-hero-button-hover-bg);
+  border-color: var(--promotional-hero-button-hover-border);
+  color: var(--promotional-hero-button-hover-text);
+  transform: translateY(-2px);
+}
+
+.promotional-hero[data-button-hover-style='lift-only'] .promotional-hero-button:hover {
+  background-color: var(--promotional-hero-button-bg);
+  border-color: var(--promotional-hero-button-border);
+  color: var(--promotional-hero-button-text);
+  transform: translateY(-2px);
+}
+
+.promotional-hero[data-button-style='outline'][data-button-hover-style='lift-only'] .promotional-hero-button:hover {
+  background-color: transparent;
+}
+
+.promotional-hero[data-button-text-transform='none'] {
+  --promotional-hero-button-transform: none;
+}
+
+.promotional-hero[data-button-text-transform='uppercase'] {
+  --promotional-hero-button-transform: uppercase;
+}
+
+.promotional-hero[data-button-text-transform='capitalize'] {
+  --promotional-hero-button-transform: capitalize;
+}
+
+.promotional-hero[data-loading] {
+  min-height: 320px;
+}
+
+.promotional-hero[data-grid-max-width='none'] {
+  --promotional-hero-grid-max-width: none;
+}
+
+.promotional-hero[data-grid-max-width='1200'] {
+  --promotional-hero-grid-max-width: 1200px;
+}
+
+.promotional-hero[data-grid-max-width='1400'] {
+  --promotional-hero-grid-max-width: 1400px;
+}
+
+.promotional-hero[data-grid-max-width='1600'] {
+  --promotional-hero-grid-max-width: 1600px;
+}
+
+.promotional-hero[data-grid-max-width='1800'] {
+  --promotional-hero-grid-max-width: 1800px;
+}
+
+.promotional-hero[data-description-max-lines='2'] .promotional-hero-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.promotional-hero[data-description-max-lines='3'] .promotional-hero-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.promotional-hero[data-description-max-lines='4'] .promotional-hero-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
+
+.promotional-hero[data-description-max-lines='5'] .promotional-hero-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  overflow: hidden;
+}
+
+.promotional-hero[data-description-style='headline'] .promotional-hero-description {
+  font: var(--type-body-1-strong-font);
+  letter-spacing: var(--type-body-1-strong-letter-spacing);
+}
+
+.promotional-hero[data-description-style='eyebrow'] .promotional-hero-description {
+  font: var(--type-body-2-strong-font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.promotional-hero[data-description-style='muted'] .promotional-hero-description {
+  color: color-mix(in srgb, var(--promotional-hero-content-color) 72%, transparent);
+}
+
+@media (max-width: 1100px) {
+  .promotional-hero[data-columns='3'] .promotional-hero-container {
+    grid-template-columns: repeat(2, minmax(0, var(--promotional-hero-card-width)));
+  }
+}
+
+@media (max-width: 768px) {
+  .promotional-hero {
+    --promotional-hero-card-width: min(100%, 420px);
+    --promotional-hero-card-min-height: 460px;
+    --promotional-hero-band-padding-x: var(--spacing-small);
+    --promotional-hero-content-offset: -16px;
+  }
+
+  .promotional-hero-container,
+  .promotional-hero[data-columns='2'] .promotional-hero-container,
+  .promotional-hero[data-columns='3'] .promotional-hero-container {
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+  }
+
+  .promotional-hero-card {
+    width: 100%;
+  }
+
+  .promotional-hero[data-mobile-layout='carousel'] .promotional-hero-container,
+  .promotional-hero[data-mobile-layout='snap-scroll'] .promotional-hero-container {
+    gap: var(--spacing-medium);
+    grid-auto-columns: minmax(78%, 1fr);
+    grid-auto-flow: column;
+    grid-template-columns: unset;
+    justify-content: start;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 4px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .promotional-hero[data-mobile-layout='carousel'] .promotional-hero-card,
+  .promotional-hero[data-mobile-layout='snap-scroll'] .promotional-hero-card {
+    scroll-snap-align: center;
+  }
+
+  .promotional-hero-whitebox {
+    max-width: 92%;
+    min-width: auto;
+  }
+
+  .promotional-hero[data-image-ratio='landscape'] .promotional-hero-whitebox {
+    max-width: 94%;
+  }
+}
+
+@media (max-width: 480px) {
+  .promotional-hero {
+    --promotional-hero-card-min-height: 400px;
+    --promotional-hero-content-offset: -12px;
+  }
+
+  .promotional-hero-button {
+    font-size: 0.8125rem;
+    padding: 9px 18px;
+  }
+}

@@ -140,6 +140,21 @@ Block README files should include:
 
 Include section metadata placement guidance (immediately above block).
 
+### README Style Preferences
+
+- Keep docs concise but context-rich: short intro, then actionable tables.
+- Use clear tables for both:
+  - DA.live Model Options
+  - Section Metadata Reference
+- Each table row should include:
+  - key/field
+  - default
+  - possible values
+  - effect (what changes visually/behaviorally)
+- Effect descriptions should be plain-language, specific, and outcome-focused (not vague labels).
+- Document supported aliases explicitly (for example `color/colour`) when implemented.
+- If new metadata options are introduced in code, update README in the same change.
+
 ## Linting Standards
 
 All changes must pass:

@@ -11,6 +11,14 @@ It supports:
 - layout controls via Section Metadata,
 - timed slide rotation via an interval row in the block table.
 
+## Benefits
+
+- Reusable campaign hero pattern with strong DA.live authoring flexibility.
+- Metadata-first controls for layout, overlays, and CTA presentation.
+- Supports multi-CTA slides plus optional sidebar navigation in one block.
+- Progressive enhancement with safe defaults and reduced-motion awareness.
+- Optimized first-slide media loading to support Core Web Vitals.
+
 ## Quick Start
 
 1. Create a 3-column `hero-cta` table.
@@ -75,9 +83,14 @@ Example:
 | `data-eyebrow-style` | `label` |
 | `data-button-style` | `rounded-lg` |
 | `data-button-width` | `fit-content` |
+| `data-button-color` | `brand` |
+| `data-button-hover-style` | `fill` |
+| `data-button-border-width` | `3` |
+| `data-button-shadow` | `none` |
+| `data-button-font-weight` | `600` |
 | `data-cta-layout` | `inline` |
 | `data-cta-gap` | `medium` |
-| `data-cta-text-transform` | `uppercase` |
+| `data-cta-text-transform` | `none` |
 | `data-cta-font-size` | `md` |
 | `data-button-text-color` | `white` |
 | `data-slide-transition` | `fade` |
@@ -110,13 +123,19 @@ DA.live model fields are intentionally empty to avoid duplicate control paths an
 | `data-overlay-blur` | `none` | `none`, `soft`, `medium` | Applies backdrop blur strength to reduce background noise behind text and improve legibility. |
 | `data-content-surface` | `none` | `none`, `glass`, `solid` | Adds an optional panel treatment behind content for stronger text contrast on complex imagery. |
 | `data-eyebrow-style` | `none` | `none`, `label`, `pill`, `underline` | Styles the first supporting line as an eyebrow treatment when present, helping hierarchy and campaign tagging. |
-| `data-button-style` | `default` | `default`, `pill`, `sharp`, `soft`, `rounded-lg`, `outline`, `ghost`, `elevated` | Changes CTA shape and treatment (corner radius, outline/ghost style, elevation shadow). |
-| `data-button-width` | `medium` | `auto`, `narrow`, `medium`, `wide`, `fluid`, `fit-content` | Controls CTA sizing behavior from intrinsic width (`auto`/`fit-content`) to fixed (`narrow`/`medium`/`wide`) and full-row (`fluid`). |
+| `data-button-style` | `pill` | `default`, `pill`, `sharp`, `soft`, `rounded-lg`, `outline`, `ghost`, `elevated`, `minimal`, `glass`, `gradient`, `link` | Changes CTA shape and surface treatment from classic solid styles to minimalist, glass, gradient, or link-like presentation. |
+| `data-button-width` | `auto` | `auto`, `narrow`, `medium`, `wide`, `fluid`, `fit-content` | Controls CTA sizing behavior from intrinsic width (`auto`/`fit-content`) to fixed (`narrow`/`medium`/`wide`) and full-row (`fluid`). |
+| `data-button-color` | `brand` | `transparent`, `light`, `neutral`, `dark`, `brand`, `accent`, `white`, `black`, `#RGB`, `#RRGGBB`, `rgb(...)`, `rgba(...)` | Sets CTA background and border color using design tokens or explicit colors. |
+| `data-button-colour` | same as above | alias of `data-button-color` | UK spelling alias for the same button color control. |
+| `data-button-hover-style` | `fill` | `fill`, `inverse`, `darken`, `lift`, `lift-only`, `none` | Controls hover behavior: color fill/invert/darken, lift motion, lift-only motion (no color change), or no hover change. |
+| `data-button-border-width` | `3` | `1`, `2`, `3`, `4` | Sets CTA border thickness for lighter or stronger outline emphasis. |
+| `data-button-shadow` | `none` | `none`, `soft`, `medium`, `strong` | Applies optional CTA depth independently from style preset. |
+| `data-button-font-weight` | `600` | `400`, `500`, `600`, `700` | Sets CTA label weight to tune emphasis and readability. |
 | `data-cta-layout` | `stack` | `stack`, `inline`, `split` | Switches CTA group layout between vertical stack, horizontal flow, or equal-width two-column split. |
 | `data-cta-gap` | `medium` | `xsmall`, `small`, `medium`, `large` | Controls spacing between CTA items independently from global hero spacing presets. |
-| `data-cta-text-transform` | `uppercase` | `none`, `uppercase`, `capitalize` | Controls CTA label casing style without requiring copy changes. |
+| `data-cta-text-transform` | `none` | `none`, `uppercase`, `capitalize` | Controls CTA label casing style without requiring copy changes. |
 | `data-cta-font-size` | `default` | `default`, `sm`, `md`, `lg` | Uses inherited/global CTA font size by default; optional overrides adjust CTA label scale when needed. |
-| `data-button-text-color` | empty | `white`, `dark`, `brand`, `accent`, `inherit`, `#RGB`, `#RRGGBB`, `rgb(...)`, `rgba(...)` | Overrides CTA text color and keeps it consistent across normal, hover, and focus states. |
+| `data-button-text-color` | `white` | `white`, `dark`, `brand`, `accent`, `inherit`, `#RGB`, `#RRGGBB`, `rgb(...)`, `rgba(...)` | Overrides CTA text color and keeps it consistent across normal, hover, and focus states. |
 | `data-button-text-colour` | same as above | alias of `data-button-text-color` | UK spelling alias for the same CTA text color control. |
 | `data-slide-transition` | `fade` | `fade`, `slide`, `none` | Controls animation style between slides, from crossfade to directional slide or no transition. |
 | `data-autoplay` | `on` | `on`, `off`, `true`, `false`, `1`, `0`, `yes`, `no` | Enables or disables automatic slide rotation while still honoring reduced-motion user preferences. |
@@ -126,7 +145,7 @@ DA.live model fields are intentionally empty to avoid duplicate control paths an
 | `data-image-max-width` | `2400` | `1200`, `1600`, `2000`, `2400`, `3000`, `3600` | Caps the largest responsive image generated for slide media, balancing file weight and large-screen sharpness. |
 | `data-sidebar` | `off` | `off`, `left`, `right`, `overlay-left`, `overlay-right`, `sticky-left`, `sticky-right` | Enables sidebar nav and chooses layout mode: standard side rail, overlay panel, or sticky side rail. |
 
-## Accessibility and Behavior
+## Accessibility
 
 - First slide image is eager-loaded for LCP optimization.
 - Remaining slides rotate by interval unless reduced motion is enabled.
@@ -139,3 +158,4 @@ DA.live model fields are intentionally empty to avoid duplicate control paths an
 - **Alignment not applying**: ensure Section Metadata is directly above the block and keys are correct.
 - **Interval not applying**: ensure final row contains only one numeric value in cell 1 (`5000`).
 - **Image not rendering**: verify column 1 resolves to a direct image URL or uploaded asset.
+- **Need transparent CTA with motion only**: use `data-button-style=outline`, `data-button-color=white`, `data-button-text-color=white`, and `data-button-hover-style=lift-only`.

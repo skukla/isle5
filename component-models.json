@@ -884,6 +884,10 @@
     ]
   },
   {
+    "id": "promotional-hero",
+    "fields": []
+  },
+  {
     "id": "search-bar",
     "fields": [
       {

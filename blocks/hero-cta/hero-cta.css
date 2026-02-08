@@ -4,7 +4,16 @@
   --hero-cta-content-max-width: 420px;
   --hero-cta-overlay-tint: rgb(0 0 0 / 55%);
   --hero-cta-cta-gap: 16px;
-  --hero-cta-cta-text-transform: uppercase;
+  --hero-cta-cta-text-transform: none;
+  --hero-cta-button-bg: var(--color-brand-500);
+  --hero-cta-button-text-color: var(--color-neutral-50);
+  --hero-cta-button-border: var(--color-brand-500);
+  --hero-cta-button-border-width: var(--shape-border-width-3);
+  --hero-cta-button-hover-bg: var(--color-brand-600);
+  --hero-cta-button-hover-border: var(--color-brand-600);
+  --hero-cta-button-hover-text: var(--color-neutral-50);
+  --hero-cta-button-font-weight: 600;
+  --hero-cta-button-shadow: none;
 
   position: relative;
   min-height: 560px;
@@ -170,113 +179,120 @@
 /* Base button styles - transparent by default */
 .hero-cta-content .hero-cta-actions .button {
   width: 200px;
-  padding: 14px 28px;
+  padding: 0 28px;
+  min-width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  font: var(--type-button-2-font);
+  line-height: 1;
   justify-content: center;
   text-align: center;
   text-transform: var(--hero-cta-cta-text-transform);
-  letter-spacing: 0.06em;
-  background-color: transparent;
-  color: var(--color-neutral-50);
-  border: var(--shape-border-width-3) solid var(--color-neutral-50);
-  font-weight: 600;
+  letter-spacing: var(--type-button-2-letter-spacing);
+  background-color: var(--hero-cta-button-bg);
+  color: var(--hero-cta-button-text-color);
+  border: var(--hero-cta-button-border-width) solid var(--hero-cta-button-border);
+  font-weight: var(--hero-cta-button-font-weight);
   transition: all 0.3s ease;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-shadow: var(--hero-cta-button-shadow);
 }
 
-/* Default hover: fill with white */
+/* Metadata-first default hover */
 .hero-cta-content .hero-cta-actions .button:hover,
 .hero-cta-content .hero-cta-actions .button:focus {
-  background-color: var(--color-neutral-50);
-  color: var(--color-brand-500);
-  border-color: var(--color-neutral-50);
+  background-color: var(--hero-cta-button-hover-bg);
+  color: var(--hero-cta-button-hover-text);
+  border-color: var(--hero-cta-button-hover-border);
 }
 
-/* Variant: Transparent (explicit, same as default) */
-.hero-cta-content .hero-cta-actions .button--transparent {
+/* Legacy row color variants only when metadata color is not configured */
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--transparent {
   background-color: transparent;
   color: var(--color-neutral-50);
   border-color: var(--color-neutral-50);
 }
 
-.hero-cta-content .hero-cta-actions .button--transparent:hover,
-.hero-cta-content .hero-cta-actions .button--transparent:focus {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--transparent:hover,
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--transparent:focus {
   background-color: var(--color-neutral-50);
   color: var(--color-brand-500);
 }
 
 /* Variant: White solid */
-.hero-cta-content .hero-cta-actions .button--white {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--white {
   background-color: var(--color-neutral-50);
   color: var(--color-brand-500);
   border-color: var(--color-neutral-50);
 }
 
-.hero-cta-content .hero-cta-actions .button--white:hover,
-.hero-cta-content .hero-cta-actions .button--white:focus {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--white:hover,
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--white:focus {
   background-color: var(--color-neutral-100);
   color: var(--color-brand-700);
   border-color: var(--color-neutral-100);
 }
 
 /* Variant: Brand color */
-.hero-cta-content .hero-cta-actions .button--brand {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--brand {
   background-color: var(--color-brand-500);
   color: var(--color-neutral-50);
   border-color: var(--color-brand-500);
 }
 
-.hero-cta-content .hero-cta-actions .button--brand:hover,
-.hero-cta-content .hero-cta-actions .button--brand:focus {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--brand:hover,
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--brand:focus {
   background-color: var(--color-brand-600);
   border-color: var(--color-brand-600);
 }
 
 /* Variant: Accent color */
-.hero-cta-content .hero-cta-actions .button--accent {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--accent {
   background-color: var(--color-informational-500);
   color: var(--color-neutral-50);
   border-color: var(--color-informational-500);
 }
 
-.hero-cta-content .hero-cta-actions .button--accent:hover,
-.hero-cta-content .hero-cta-actions .button--accent:focus {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--accent:hover,
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--accent:focus {
   background-color: var(--color-informational-800);
   border-color: var(--color-informational-800);
 }
 
 /* Variant: Dark solid */
-.hero-cta-content .hero-cta-actions .button--dark {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--dark {
   background-color: var(--color-brand-700);
   color: var(--color-neutral-50);
   border-color: var(--color-brand-700);
 }
 
-.hero-cta-content .hero-cta-actions .button--dark:hover,
-.hero-cta-content .hero-cta-actions .button--dark:focus {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--dark:hover,
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--dark:focus {
   background-color: var(--color-neutral-900);
   border-color: var(--color-neutral-900);
 }
 
 /* Variant: Outline dark (for light backgrounds) */
-.hero-cta-content .hero-cta-actions .button--outline-dark {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--outline-dark {
   background-color: transparent;
   color: var(--color-brand-500);
   border-color: var(--color-brand-500);
 }
 
-.hero-cta-content .hero-cta-actions .button--outline-dark:hover,
-.hero-cta-content .hero-cta-actions .button--outline-dark:focus {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--outline-dark:hover,
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--outline-dark:focus {
   background-color: var(--color-brand-500);
   color: var(--color-neutral-50);
   border-color: var(--color-brand-500);
 }
 
 /* Custom hex colors */
-.hero-cta-content .hero-cta-actions .button--custom:hover,
-.hero-cta-content .hero-cta-actions .button--custom:focus {
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--custom:hover,
+.hero-cta:not([data-button-color]) .hero-cta-content .hero-cta-actions .button--custom:focus {
   opacity: 0.9;
   transform: translateY(-2px);
 }
@@ -285,10 +301,6 @@
 .hero-cta-content .hero-cta-actions .button:focus-visible {
   outline: 3px solid var(--color-neutral-50);
   outline-offset: 2px;
-}
-
-.hero-cta-content .hero-cta-actions .button--outline-dark:focus-visible {
-  outline-color: var(--color-brand-500);
 }
 
 /* Button style variants - Border radius */
@@ -324,26 +336,57 @@
   box-shadow: 0 6px 16px rgb(0 0 0 / 22%);
 }
 
+.hero-cta[data-button-style='minimal'] .hero-cta-actions .button {
+  background-color: transparent;
+  border-color: color-mix(in srgb, var(--hero-cta-button-border) 42%, transparent);
+  border-width: 1px;
+}
+
+.hero-cta[data-button-style='glass'] .hero-cta-actions .button {
+  backdrop-filter: blur(6px);
+  background-color: color-mix(in srgb, var(--hero-cta-button-bg) 22%, transparent);
+  border-color: color-mix(in srgb, var(--hero-cta-button-border) 50%, transparent);
+}
+
+.hero-cta[data-button-style='gradient'] .hero-cta-actions .button {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--hero-cta-button-bg) 88%, #fff),
+    color-mix(in srgb, var(--hero-cta-button-bg) 78%, #000)
+  );
+  border-color: color-mix(in srgb, var(--hero-cta-button-border) 86%, #000);
+}
+
+.hero-cta[data-button-style='link'] .hero-cta-actions .button {
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-width: auto;
+  width: auto;
+  text-decoration: underline;
+}
+
 /* Button width variants */
 .hero-cta[data-button-width='auto'] .hero-cta-actions .button {
   width: auto;
   min-width: 140px;
-  padding: 14px 24px;
+  padding: 0 24px;
 }
 
 .hero-cta[data-button-width='narrow'] .hero-cta-actions .button {
   width: 180px;
-  padding: 14px 24px;
+  padding: 0 24px;
 }
 
 .hero-cta[data-button-width='medium'] .hero-cta-actions .button {
   width: 200px;
-  padding: 14px 28px;
+  padding: 0 28px;
 }
 
 .hero-cta[data-button-width='wide'] .hero-cta-actions .button {
   width: 260px;
-  padding: 14px 36px;
+  padding: 0 36px;
 }
 
 .hero-cta[data-button-width='fluid'] .hero-cta-actions .button {
@@ -354,6 +397,22 @@
 .hero-cta[data-button-width='fit-content'] .hero-cta-actions .button {
   min-width: max(140px, 12ch);
   width: fit-content;
+}
+
+.hero-cta[data-button-shadow='none'] {
+  --hero-cta-button-shadow: none;
+}
+
+.hero-cta[data-button-shadow='soft'] {
+  --hero-cta-button-shadow: 0 4px 12px rgb(0 0 0 / 18%);
+}
+
+.hero-cta[data-button-shadow='medium'] {
+  --hero-cta-button-shadow: 0 6px 18px rgb(0 0 0 / 24%);
+}
+
+.hero-cta[data-button-shadow='strong'] {
+  --hero-cta-button-shadow: 0 8px 24px rgb(0 0 0 / 30%);
 }
 
 .hero-cta[data-align='left'] .hero-cta-overlay {
@@ -556,6 +615,47 @@
 .hero-cta[data-button-text-color] .hero-cta-actions .button:hover,
 .hero-cta[data-button-text-color] .hero-cta-actions .button:focus {
   color: var(--hero-cta-button-text-color);
+}
+
+.hero-cta[data-button-hover-style='none'] .hero-cta-actions .button:hover {
+  background-color: var(--hero-cta-button-bg);
+  border-color: var(--hero-cta-button-border);
+  color: var(--hero-cta-button-text-color);
+  transform: none;
+}
+
+.hero-cta[data-button-hover-style='inverse'] .hero-cta-actions .button:hover {
+  background-color: var(--hero-cta-button-text-color);
+  border-color: var(--hero-cta-button-text-color);
+  color: var(--hero-cta-button-bg);
+}
+
+.hero-cta[data-button-hover-style='darken'] .hero-cta-actions .button:hover {
+  background-color: var(--hero-cta-button-hover-bg);
+  border-color: var(--hero-cta-button-hover-border);
+  color: var(--hero-cta-button-hover-text);
+}
+
+.hero-cta[data-button-hover-style='lift'] .hero-cta-actions .button:hover {
+  background-color: var(--hero-cta-button-hover-bg);
+  border-color: var(--hero-cta-button-hover-border);
+  color: var(--hero-cta-button-hover-text);
+  transform: translateY(-2px);
+}
+
+.hero-cta[data-button-hover-style='lift-only'] .hero-cta-actions .button:hover {
+  background-color: var(--hero-cta-button-bg);
+  border-color: var(--hero-cta-button-border);
+  color: var(--hero-cta-button-text-color);
+  transform: translateY(-2px);
+}
+
+.hero-cta[data-button-style='outline'][data-button-hover-style='lift-only'] .hero-cta-actions .button:hover {
+  background-color: transparent;
+}
+
+.hero-cta[data-button-style='outline'][data-button-hover-style='none'] .hero-cta-actions .button:hover {
+  background-color: transparent;
 }
 
 .hero-cta[data-cta-gap='xsmall'] {

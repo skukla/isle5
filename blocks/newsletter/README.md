@@ -88,29 +88,27 @@ Place **Section Metadata immediately above** the Newsletter block.
 | `data-button-colour-filled` | same as above | alias of `data-button-color-filled` | UK spelling alias for filled-state button color. |
 | `data-full-width` | `false` | `true`, `false`, `1`, `0`, `yes`, `no`, `on`, `off` | Expands the newsletter background band edge-to-edge while keeping content constrained by inner width tokens. |
 
-## Additional Notes (Recommended)
-
-### Submission Behavior
+## Submission Behavior
 
 - The block validates email client-side and transitions to success state locally.
 - No remote endpoint configuration is used by this block.
 
-### Success State Behavior
+## Success State Behavior
 
 - On success, the default signup UI is hidden.
 - Success heading/subheading/supporting text are shown from Rows 6–8.
 
-### Accessibility
+## Accessibility
 
 - Uses semantic `<form>`, associated label, and `type="email"` validation.
 - Uses status live regions for submission feedback.
 - Provides visible keyboard focus states for input and button.
 
-### Troubleshooting
+## Troubleshooting
 
 - **Background image not visible**: ensure `data-background-style=image-wash` and provide a valid URL in `data-background-image`.
 - **Button colors not switching**: verify `data-button-color-empty` and `data-button-color-filled` values.
-- **Density not changing**: verify `data-density` is one of `xx-compact`, `x-compact`, `compact`, `comfortable`, `spacious`, `x-spacious`, `xx-spacious`, `responsive`.
+- **Density not changing**: verify `data-density` is one of `xx-compact`, `x-compact`, `compact`, `comfortable`, `spacious`, `x-spacious`, `xx-spacious`, `adaptive`, `responsive`.
 - **Using UK spelling**: these aliases are supported and equivalent:
   - `data-background-colour` == `data-background-color`
   - `data-button-colour-empty` == `data-button-color-empty`

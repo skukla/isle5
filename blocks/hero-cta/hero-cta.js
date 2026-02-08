@@ -69,7 +69,22 @@ function normalizeGradientIntensity(value, fallback) {
 
 function normalizeButtonStyle(value, fallback) {
   const val = (value || '').toLowerCase();
-  if (['default', 'pill', 'sharp', 'soft', 'rounded-lg', 'outline', 'ghost', 'elevated'].includes(val)) return val;
+  if (
+    [
+      'default',
+      'pill',
+      'sharp',
+      'soft',
+      'rounded-lg',
+      'outline',
+      'ghost',
+      'elevated',
+      'minimal',
+      'glass',
+      'gradient',
+      'link',
+    ].includes(val)
+  ) return val;
   return fallback;
 }
 
@@ -144,7 +159,7 @@ function normalizeCtaGap(value, fallback = 'medium') {
   return fallback;
 }
 
-function normalizeCtaTextTransform(value, fallback = 'uppercase') {
+function normalizeCtaTextTransform(value, fallback = 'none') {
   const val = (value || '').toLowerCase();
   if (['none', 'uppercase', 'capitalize'].includes(val)) return val;
   return fallback;
@@ -215,6 +230,40 @@ function normalizeButtonTextColor(value, fallback = '') {
   return fallback;
 }
 
+function normalizeButtonColor(value, fallback = '') {
+  const raw = (value || '').toString().trim();
+  if (!raw) return fallback;
+  const val = raw.toLowerCase();
+  if (['transparent', 'light', 'neutral', 'dark', 'brand', 'accent', 'white', 'black'].includes(val)) return val;
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw;
+  if (/^rgba?\(/i.test(raw)) return raw;
+  return fallback;
+}
+
+function normalizeButtonHoverStyle(value, fallback = 'fill') {
+  const val = (value || '').toLowerCase();
+  if (['fill', 'inverse', 'darken', 'lift', 'lift-only', 'none'].includes(val)) return val;
+  return fallback;
+}
+
+function normalizeButtonBorderWidth(value, fallback = '3') {
+  const val = (value || '').toString().trim();
+  if (['1', '2', '3', '4'].includes(val)) return val;
+  return fallback;
+}
+
+function normalizeButtonShadow(value, fallback = 'none') {
+  const val = (value || '').toLowerCase();
+  if (['none', 'soft', 'medium', 'strong'].includes(val)) return val;
+  return fallback;
+}
+
+function normalizeButtonFontWeight(value, fallback = '600') {
+  const val = (value || '').toString().trim();
+  if (['400', '500', '600', '700'].includes(val)) return val;
+  return fallback;
+}
+
 function resolveButtonTextColor(colorValue) {
   const key = (colorValue || '').toLowerCase();
   const tokenMap = {
@@ -225,6 +274,41 @@ function resolveButtonTextColor(colorValue) {
     inherit: 'inherit',
   };
   return tokenMap[key] || colorValue;
+}
+
+function resolveButtonColor(colorValue) {
+  const key = (colorValue || '').toLowerCase();
+  const tokenMap = {
+    transparent: 'transparent',
+    light: 'var(--color-neutral-100)',
+    neutral: 'var(--color-neutral-200)',
+    dark: 'var(--color-neutral-900)',
+    brand: 'var(--color-brand-500)',
+    accent: 'var(--color-informational-500)',
+    white: 'var(--color-neutral-50)',
+    black: '#000',
+  };
+  return tokenMap[key] || colorValue;
+}
+
+function resolveButtonHoverColor(colorValue, resolvedBaseColor) {
+  const key = (colorValue || '').toLowerCase();
+  const tokenMap = {
+    transparent: 'var(--color-neutral-50)',
+    light: 'var(--color-neutral-200)',
+    neutral: 'var(--color-neutral-300)',
+    dark: 'var(--color-neutral-900)',
+    brand: 'var(--color-brand-600)',
+    accent: 'var(--color-informational-800)',
+    white: 'var(--color-neutral-100)',
+    black: 'var(--color-neutral-900)',
+  };
+
+  if (tokenMap[key]) return tokenMap[key];
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorValue) || /^rgba?\(/i.test(colorValue)) {
+    return `color-mix(in srgb, ${resolvedBaseColor} 92%, black)`;
+  }
+  return resolvedBaseColor;
 }
 
 function resolveOverlayColor(colorValue) {
@@ -446,7 +530,7 @@ function buildSlide(row, isFirstSlide = false, config = {}) {
   const buttonGroups = [];
 
   paragraphs.forEach((p, index) => {
-    const colorVariant = colorVariants[index] || 'transparent'; // Get color from Column 3
+    const colorVariant = colorVariants[index] || 'transparent'; // Legacy fallback when metadata button color is not set
 
     // If paragraph already has button links, style it
     if (p.querySelector('a.button')) {
@@ -574,6 +658,11 @@ export default function decorate(block) {
   // Get section element for metadata fallback
   const section = block.closest('.section');
   const sectionData = section?.dataset || {};
+  const hasButtonWidthOverride = Boolean(
+    block.dataset.buttonWidth?.trim()
+    || sectionData.dataButtonWidth?.trim()
+    || sectionData.dataDataButtonWidth?.trim(),
+  );
 
   // Read configuration from block data attributes or section metadata
   // Note: DA.live Section Metadata may add double prefix (data-data-*)
@@ -591,7 +680,7 @@ export default function decorate(block) {
       block.dataset.buttonStyle,
       sectionData,
       ['dataButtonStyle', 'dataDataButtonStyle'],
-      'default',
+      'pill',
     ),
     imageMaxWidthRaw: getConfigValue(
       block.dataset.imageMaxWidth,
@@ -612,7 +701,31 @@ export default function decorate(block) {
       block.dataset.buttonWidth,
       sectionData,
       ['dataButtonWidth', 'dataDataButtonWidth'],
-      'medium',
+      'auto',
+    ),
+    buttonHoverStyle: getConfigValue(
+      block.dataset.buttonHoverStyle,
+      sectionData,
+      ['dataButtonHoverStyle', 'dataDataButtonHoverStyle'],
+      'fill',
+    ),
+    buttonBorderWidth: getConfigValue(
+      block.dataset.buttonBorderWidth,
+      sectionData,
+      ['dataButtonBorderWidth', 'dataDataButtonBorderWidth'],
+      '3',
+    ),
+    buttonShadow: getConfigValue(
+      block.dataset.buttonShadow,
+      sectionData,
+      ['dataButtonShadow', 'dataDataButtonShadow'],
+      'none',
+    ),
+    buttonFontWeight: getConfigValue(
+      block.dataset.buttonFontWeight,
+      sectionData,
+      ['dataButtonFontWeight', 'dataDataButtonFontWeight'],
+      '600',
     ),
     density: getConfigValue(block.dataset.density, sectionData, ['dataDensity', 'dataDataDensity'], 'comfortable'),
     contentMaxWidthRaw: getConfigValue(
@@ -648,7 +761,7 @@ export default function decorate(block) {
       block.dataset.ctaTextTransform,
       sectionData,
       ['dataCtaTextTransform', 'dataDataCtaTextTransform'],
-      'uppercase',
+      'none',
     ),
     ctaFontSize: getConfigValue(
       block.dataset.ctaFontSize,
@@ -702,7 +815,13 @@ export default function decorate(block) {
         'dataButtonTextColour',
         'dataDataButtonTextColour',
       ],
-      '',
+      'white',
+    ),
+    buttonColor: getConfigValue(
+      block.dataset.buttonColor,
+      sectionData,
+      ['dataButtonColor', 'dataDataButtonColor', 'dataButtonColour', 'dataDataButtonColour'],
+      'brand',
     ),
     sidebar: getConfigValue('', sectionData, ['dataSidebar', 'dataDataSidebar'], ''),
   };
@@ -745,14 +864,19 @@ export default function decorate(block) {
     config.gradientIntensity,
     'medium',
   );
-  const buttonStyle = normalizeButtonStyle(config.buttonStyle, 'default');
-  const buttonWidth = normalizeButtonWidth(config.buttonWidth, 'medium');
+  const buttonStyle = normalizeButtonStyle(config.buttonStyle, 'pill');
+  const buttonWidthRaw = normalizeButtonWidth(config.buttonWidth, 'auto');
+  const buttonColor = normalizeButtonColor(config.buttonColor, 'brand');
+  const buttonHoverStyle = normalizeButtonHoverStyle(config.buttonHoverStyle, 'fill');
+  const buttonBorderWidth = normalizeButtonBorderWidth(config.buttonBorderWidth, '3');
+  const buttonShadow = normalizeButtonShadow(config.buttonShadow, 'none');
+  const buttonFontWeight = normalizeButtonFontWeight(config.buttonFontWeight, '600');
   const density = normalizeDensity(config.density, 'comfortable');
   const overlayStyle = normalizeOverlayStyle(config.overlayStyle, 'linear');
   const overlayColor = normalizeOverlayColor(config.overlayColor, '');
   const ctaLayout = normalizeCtaLayout(config.ctaLayout, 'stack');
   const ctaGap = normalizeCtaGap(config.ctaGap, 'medium');
-  const ctaTextTransform = normalizeCtaTextTransform(config.ctaTextTransform, 'uppercase');
+  const ctaTextTransform = normalizeCtaTextTransform(config.ctaTextTransform, 'none');
   const ctaFontSize = normalizeCtaFontSize(config.ctaFontSize, 'default');
   const slideTransition = normalizeSlideTransition(config.slideTransition, 'fade');
   const overlayBlur = normalizeOverlayBlur(config.overlayBlur, 'none');
@@ -761,21 +885,27 @@ export default function decorate(block) {
   const eyebrowStyle = normalizeEyebrowStyle(config.eyebrowStyle, 'none');
   const contentSurface = normalizeContentSurface(config.contentSurface, 'none');
   const imageFrameStyle = normalizeImageFrameStyle(config.imageFrameStyle, 'default');
-  const buttonTextColor = normalizeButtonTextColor(config.buttonTextColor, '');
+  const buttonTextColor = normalizeButtonTextColor(config.buttonTextColor, 'white');
+  const buttonWidth = (!hasButtonWidthOverride && size === 'short') ? 'medium' : buttonWidthRaw;
 
   warnOnInvalidConfig('data-align', config.align, align, 'right');
   warnOnInvalidConfig('data-vertical', config.vertical, vertical, 'bottom');
   warnOnInvalidConfig('data-size', config.size, size, 'tall');
   warnOnInvalidConfig('data-gradient-intensity', config.gradientIntensity, gradientIntensity, 'medium');
-  warnOnInvalidConfig('data-button-style', config.buttonStyle, buttonStyle, 'default');
-  warnOnInvalidConfig('data-button-width', config.buttonWidth, buttonWidth, 'medium');
+  warnOnInvalidConfig('data-button-style', config.buttonStyle, buttonStyle, 'pill');
+  warnOnInvalidConfig('data-button-width', config.buttonWidth, buttonWidthRaw, 'auto');
+  warnOnInvalidConfig('data-button-color', config.buttonColor, buttonColor, 'brand');
+  warnOnInvalidConfig('data-button-hover-style', config.buttonHoverStyle, buttonHoverStyle, 'fill');
+  warnOnInvalidConfig('data-button-border-width', config.buttonBorderWidth, buttonBorderWidth, '3');
+  warnOnInvalidConfig('data-button-shadow', config.buttonShadow, buttonShadow, 'none');
+  warnOnInvalidConfig('data-button-font-weight', config.buttonFontWeight, buttonFontWeight, '600');
   warnOnInvalidConfig('data-density', config.density, density, 'comfortable');
   warnOnInvalidConfig('data-content-max-width', config.contentMaxWidthRaw, config.contentMaxWidth, '420');
   warnOnInvalidConfig('data-overlay-style', config.overlayStyle, overlayStyle, 'linear');
   warnOnInvalidConfig('data-overlay-color', config.overlayColor, overlayColor, '');
   warnOnInvalidConfig('data-cta-layout', config.ctaLayout, ctaLayout, 'stack');
   warnOnInvalidConfig('data-cta-gap', config.ctaGap, ctaGap, 'medium');
-  warnOnInvalidConfig('data-cta-text-transform', config.ctaTextTransform, ctaTextTransform, 'uppercase');
+  warnOnInvalidConfig('data-cta-text-transform', config.ctaTextTransform, ctaTextTransform, 'none');
   warnOnInvalidConfig('data-cta-font-size', config.ctaFontSize, ctaFontSize, 'default');
   warnOnInvalidConfig('data-slide-transition', config.slideTransition, slideTransition, 'fade');
   warnOnInvalidConfig('data-autoplay', config.autoplayRaw, config.autoplay ? 'on' : 'off', 'on');
@@ -785,7 +915,7 @@ export default function decorate(block) {
   warnOnInvalidConfig('data-eyebrow-style', config.eyebrowStyle, eyebrowStyle, 'none');
   warnOnInvalidConfig('data-content-surface', config.contentSurface, contentSurface, 'none');
   warnOnInvalidConfig('data-image-frame-style', config.imageFrameStyle, imageFrameStyle, 'default');
-  warnOnInvalidConfig('data-button-text-color', config.buttonTextColor, buttonTextColor, '');
+  warnOnInvalidConfig('data-button-text-color', config.buttonTextColor, buttonTextColor, 'white');
   warnOnInvalidConfig('data-sidebar', config.sidebar, sidebarPosition || 'off', 'off');
   warnOnInvalidConfig('data-image-max-width', config.imageMaxWidthRaw, config.imageMaxWidth, '2400');
 
@@ -796,6 +926,10 @@ export default function decorate(block) {
   block.dataset.gradientIntensity = gradientIntensity;
   block.dataset.buttonStyle = buttonStyle;
   block.dataset.buttonWidth = buttonWidth;
+  block.dataset.buttonHoverStyle = buttonHoverStyle;
+  block.dataset.buttonBorderWidth = buttonBorderWidth;
+  block.dataset.buttonShadow = buttonShadow;
+  block.dataset.buttonFontWeight = buttonFontWeight;
   block.dataset.density = density;
   block.dataset.overlayStyle = overlayStyle;
   block.dataset.ctaLayout = ctaLayout;
@@ -814,6 +948,19 @@ export default function decorate(block) {
 
   block.style.setProperty('--hero-cta-content-max-width', `${config.contentMaxWidth}px`);
 
+  const resolvedButtonBaseColor = resolveButtonColor(buttonColor);
+  const resolvedButtonHoverColor = resolveButtonHoverColor(buttonColor, resolvedButtonBaseColor);
+  const resolvedButtonHoverTextColor = resolveButtonTextColor(buttonTextColor);
+  block.style.setProperty('--hero-cta-button-bg', resolvedButtonBaseColor);
+  block.style.setProperty('--hero-cta-button-border', resolvedButtonBaseColor);
+  block.style.setProperty('--hero-cta-button-hover-bg', resolvedButtonHoverColor);
+  block.style.setProperty('--hero-cta-button-hover-border', resolvedButtonHoverColor);
+  block.style.setProperty('--hero-cta-button-hover-text', resolvedButtonHoverTextColor);
+  block.style.setProperty('--hero-cta-button-border-width', `${buttonBorderWidth}px`);
+  block.style.setProperty('--hero-cta-button-font-weight', buttonFontWeight);
+
+  block.dataset.buttonColor = buttonColor;
+
   if (overlayColor) {
     block.dataset.overlayColor = overlayColor;
     block.style.setProperty('--hero-cta-overlay-tint', resolveOverlayColor(overlayColor));
@@ -822,13 +969,8 @@ export default function decorate(block) {
     block.style.removeProperty('--hero-cta-overlay-tint');
   }
 
-  if (buttonTextColor) {
-    block.dataset.buttonTextColor = buttonTextColor;
-    block.style.setProperty('--hero-cta-button-text-color', resolveButtonTextColor(buttonTextColor));
-  } else {
-    delete block.dataset.buttonTextColor;
-    block.style.removeProperty('--hero-cta-button-text-color');
-  }
+  block.dataset.buttonTextColor = buttonTextColor;
+  block.style.setProperty('--hero-cta-button-text-color', resolveButtonTextColor(buttonTextColor));
 
   if (sidebarPosition) {
     block.dataset.sidebar = sidebarPosition;
