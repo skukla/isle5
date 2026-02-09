@@ -30,11 +30,46 @@ const DEFAULTS = {
 let resizeObserver;
 let resizeBound = false;
 let currentBannerBlock = null;
+let navWrapperObserver = null;
+let navObserverBlock = null;
 
 function onWindowResize() {
   if (currentBannerBlock) {
     updateTopBannerOffset(currentBannerBlock);
   }
+}
+
+function stopNavWrapperObserver() {
+  if (navWrapperObserver) {
+    navWrapperObserver.disconnect();
+    navWrapperObserver = null;
+    navObserverBlock = null;
+  }
+}
+
+function ensureNavWrapperObserver(block) {
+  if (!block || typeof MutationObserver === 'undefined') return;
+  if (document.querySelector('header .nav-wrapper')) return;
+
+  // Reuse active observer for the same block instance.
+  if (navWrapperObserver && navObserverBlock === block) return;
+  stopNavWrapperObserver();
+
+  const observeTarget = document.querySelector('header .header.block')
+    || document.querySelector('header .header')
+    || document.querySelector('header')
+    || document.body;
+  if (!observeTarget) return;
+
+  navObserverBlock = block;
+  navWrapperObserver = new MutationObserver(() => {
+    if (document.querySelector('header .nav-wrapper')) {
+      stopNavWrapperObserver();
+      updateTopBannerOffset(block);
+    }
+  });
+
+  navWrapperObserver.observe(observeTarget, { childList: true, subtree: true });
 }
 
 function getConfigValue(blockValue, sectionData, keys, fallback) {
@@ -183,9 +218,16 @@ function getTickerCellsForSource(row, source) {
 
 function getMainBasePadding(main) {
   if (!main) return 0;
+  const rootStyles = window.getComputedStyle(document.documentElement);
+  const navHeightRaw = rootStyles.getPropertyValue('--nav-height').trim();
+  const rootFontSize = Number.parseFloat(rootStyles.fontSize) || 16;
+  const navHeight = navHeightRaw.endsWith('rem')
+    ? (Number.parseFloat(navHeightRaw) || 0) * rootFontSize
+    : (Number.parseFloat(navHeightRaw) || 0);
   const existing = Number(main.dataset.topBannerBasePadding || '');
-  if (Number.isFinite(existing) && existing >= 0) return existing;
-  const base = Number.parseFloat(window.getComputedStyle(main).paddingTop) || 0;
+  if (Number.isFinite(existing) && existing >= navHeight) return existing;
+  const computedBase = Number.parseFloat(window.getComputedStyle(main).paddingTop) || 0;
+  const base = Math.max(computedBase, navHeight);
   main.dataset.topBannerBasePadding = String(base);
   return base;
 }
@@ -276,7 +318,12 @@ function updateTopBannerOffset(block) {
     document.documentElement.style.setProperty('--top-banner-height', '0px');
     if (mountMode === 'header') {
       const { hasNavWrapper } = applyPortableHeaderOffsets(0, contentGap);
-      if (!hasNavWrapper) scheduleRetry();
+      if (!hasNavWrapper) {
+        ensureNavWrapperObserver(block);
+        scheduleRetry();
+      } else {
+        stopNavWrapperObserver();
+      }
     }
     return;
   }
@@ -285,6 +332,7 @@ function updateTopBannerOffset(block) {
   const safeHeight = Math.max(0, Math.round(height));
 
   if (mountMode === 'integrated') {
+    stopNavWrapperObserver();
     clearPortableHeaderOffsets();
     document.documentElement.style.setProperty('--top-banner-height', `${safeHeight}px`);
     return;
@@ -294,11 +342,14 @@ function updateTopBannerOffset(block) {
   if (mountMode === 'header') {
     const { hasNavWrapper } = applyPortableHeaderOffsets(safeHeight, contentGap);
     if (!hasNavWrapper) {
+      ensureNavWrapperObserver(block);
       scheduleRetry();
     } else {
+      stopNavWrapperObserver();
       block.dataset.offsetRetry = '0';
     }
   } else {
+    stopNavWrapperObserver();
     clearPortableHeaderOffsets();
     applyPortableHeaderOffsets(0, 'none');
     block.dataset.offsetRetry = '0';
