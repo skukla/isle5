@@ -36,7 +36,11 @@ function normalizeButtonStyle(value, fallback) {
       'elevated',
       'glass',
       'soft',
-      'pill',
+      'soft-glow',
+      'neo',
+      'ribbon',
+      'split-tone',
+      'stamp',
       'link',
       'inset',
       'underline',
@@ -200,6 +204,28 @@ function normalizeButtonBorderWidth(value, fallback = '3') {
   return fallback;
 }
 
+function sanitizeUrl(url) {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  if (trimmed.startsWith('//')) return '';
+  if (['#', '/', './', '../', '?'].some((token) => trimmed.startsWith(token))) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = new URL(trimmed, window.location.origin);
+    if (['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol)) {
+      return trimmed;
+    }
+  } catch {
+    return '';
+  }
+
+  return '';
+}
+
 function resolveButtonTextColor(colorValue) {
   const key = (colorValue || '').toLowerCase();
   const tokenMap = {
@@ -306,22 +332,15 @@ function buildSidebar(navRows) {
       existingLink.className = 'hero-cta-sidebar-link';
       li.append(existingLink);
     } else {
-      // Parse Text|URL format
       const text = linkCell.textContent.trim();
       if (!text) return;
 
-      const parts = text.split('|');
-      const linkText = parts[0].trim();
-      const linkUrl = parts[1]?.trim() || '#';
-
       const link = document.createElement('a');
-      link.href = linkUrl;
-      link.textContent = linkText;
+      link.href = '#';
+      link.textContent = text;
       link.className = 'hero-cta-sidebar-link';
-
-      if (linkUrl === '#') {
-        link.setAttribute('aria-disabled', 'true');
-      }
+      link.setAttribute('aria-disabled', 'true');
+      link.setAttribute('tabindex', '-1');
 
       li.append(link);
     }
@@ -393,7 +412,8 @@ function extractImageSource(cell) {
 
 function buildSlide(row, isFirstSlide = false, config = {}) {
   const cells = [...row.children];
-  const contentCell = cells[1];
+  const ctaTextCell = cells[1];
+  const ctaLinkCell = cells[2];
 
   const slide = document.createElement('div');
   slide.className = 'hero-cta-slide';
@@ -422,66 +442,72 @@ function buildSlide(row, isFirstSlide = false, config = {}) {
     slide.append(media);
   }
 
-  // Column 2: Pure text content (no structure required)
+  // CTA surface
   const content = document.createElement('div');
   content.className = 'hero-cta-content';
 
-  if (contentCell) {
-    while (contentCell.firstElementChild) content.append(contentCell.firstElementChild);
+  const ctaLabels = [];
+  const ctaLinks = [];
+
+  if (ctaTextCell) {
+    const linkedLabels = [...ctaTextCell.querySelectorAll('a')].map((link) => link.textContent.trim()).filter(Boolean);
+    if (linkedLabels.length) {
+      ctaLabels.push(...linkedLabels);
+    } else {
+      const blockLabels = [...ctaTextCell.querySelectorAll('p, li')].map((el) => el.textContent.trim()).filter(Boolean);
+      if (blockLabels.length) {
+        ctaLabels.push(...blockLabels);
+      } else {
+        const fallbackLabels = ctaTextCell.textContent
+          .split('\n')
+          .map((text) => text.trim())
+          .filter(Boolean);
+        ctaLabels.push(...fallbackLabels);
+      }
+    }
   }
 
-  // Auto-convert simple text to CTA buttons.
-  const paragraphs = [...content.querySelectorAll('p')];
+  if (ctaLinkCell) {
+    const linkedHrefs = [...ctaLinkCell.querySelectorAll('a[href]')]
+      .map((link) => sanitizeUrl(link.getAttribute('href') || ''))
+      .filter(Boolean);
+    if (linkedHrefs.length) {
+      ctaLinks.push(...linkedHrefs);
+    } else {
+      const blockHrefs = [...ctaLinkCell.querySelectorAll('p, li')]
+        .map((el) => sanitizeUrl(el.textContent.trim()))
+        .filter(Boolean);
+      if (blockHrefs.length) {
+        ctaLinks.push(...blockHrefs);
+      } else {
+        const fallbackHrefs = ctaLinkCell.textContent
+          .split('\n')
+          .map((text) => sanitizeUrl(text.trim()))
+          .filter(Boolean);
+        ctaLinks.push(...fallbackHrefs);
+      }
+    }
+  }
+
+  // Build CTA buttons from Column 2 text, map URLs from Column 3 by index.
   const buttonGroups = [];
+  ctaLabels.forEach((label, index) => {
+    const buttonWrapper = document.createElement('p');
+    const button = document.createElement('a');
+    const href = ctaLinks[index] || ctaLinks[0] || '#';
 
-  paragraphs.forEach((p) => {
-    // If paragraph already has button links, style it
-    if (p.querySelector('a.button')) {
-      buttonGroups.push({ button: p });
-      return;
+    button.href = href;
+    button.textContent = label;
+    button.setAttribute('aria-label', label);
+    if (href === '#') {
+      button.setAttribute('role', 'button');
+      button.setAttribute('aria-disabled', 'true');
+      button.setAttribute('tabindex', '-1');
     }
+    button.className = 'button';
 
-    // Check if paragraph has a regular link
-    const existingLink = p.querySelector('a');
-    if (existingLink && !existingLink.classList.contains('button')) {
-      // Accessibility: ARIA attributes
-      const linkText = existingLink.textContent.trim();
-      existingLink.setAttribute('aria-label', linkText);
-      if (existingLink.href === '#' || !existingLink.href) {
-        existingLink.setAttribute('role', 'button');
-        existingLink.setAttribute('aria-disabled', 'true');
-        existingLink.setAttribute('tabindex', '-1');
-      }
-      existingLink.classList.add('button');
-
-      buttonGroups.push({ button: p });
-      return;
-    }
-
-    // Convert simple text to a button (format: "Text" or "Text|URL")
-    const text = p.textContent.trim();
-    if (text && !p.querySelector('a')) {
-      const parts = text.split('|');
-      const buttonText = parts[0].trim();
-      const buttonUrl = parts[1]?.trim() || '#';
-
-      const button = document.createElement('a');
-      button.href = buttonUrl;
-      button.textContent = buttonText;
-
-      // Accessibility: ARIA attributes
-      button.setAttribute('aria-label', buttonText);
-      if (buttonUrl === '#') {
-        button.setAttribute('role', 'button');
-        button.setAttribute('aria-disabled', 'true');
-        button.setAttribute('tabindex', '-1');
-      }
-      button.className = 'button';
-
-      p.textContent = '';
-      p.appendChild(button);
-      buttonGroups.push({ button: p });
-    }
+    buttonWrapper.append(button);
+    buttonGroups.push({ button: buttonWrapper });
   });
 
   // Build button groups
@@ -587,7 +613,7 @@ export default function decorate(block) {
       block.dataset.heroctaBtnstyle,
       sectionData,
       ['heroctaBtnstyle', 'dataHeroctaBtnstyle'],
-      'outline',
+      'elevated',
     ),
     imageMaxWidthRaw: getConfigValue(
       block.dataset.heroctaImgmax,
@@ -779,7 +805,7 @@ export default function decorate(block) {
 
   // Tier 3: Style and shape
   const styleConfig = {
-    buttonStyle: normalizeButtonStyle(config.buttonStyle, 'outline'),
+    buttonStyle: normalizeButtonStyle(config.buttonStyle, 'elevated'),
     buttonCorner: normalizeButtonCorner(config.buttonCorner, ''),
     buttonBorderWidth: normalizeButtonBorderWidth(config.buttonBorderWidth, '3'),
   };
@@ -800,7 +826,7 @@ export default function decorate(block) {
 
   warnOnInvalidConfig('herocta-position', config.position, layoutConfig.position, 'bottom-right');
   warnOnInvalidConfig('herocta-size', config.size, layoutConfig.size, 'tall');
-  warnOnInvalidConfig('herocta-btnstyle', config.buttonStyle, styleConfig.buttonStyle, 'outline');
+  warnOnInvalidConfig('herocta-btnstyle', config.buttonStyle, styleConfig.buttonStyle, 'elevated');
   warnOnInvalidConfig('herocta-btnwidth', config.buttonWidth, structureConfig.buttonWidthRaw, 'medium');
   warnOnInvalidConfig('herocta-btncolor', config.buttonBorderColor, colorConfig.buttonBorderColor, 'white');
   warnOnInvalidConfig('herocta-btnfill', config.buttonFillColor, colorConfig.buttonFillColor, 'transparent');
