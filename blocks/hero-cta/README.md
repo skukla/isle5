@@ -1,197 +1,145 @@
 # Hero CTA Block
 
-## Document Control
-
-| Field | Value |
-|---|---|
-| Block | `hero-cta` |
-| Status | Active |
-| Metadata Contract | `herocta-*` section metadata keys |
-| Last Updated | 2026-02-11 |
-
 ## Overview
 
-The Hero CTA block is a media-first merchandising hero with:
-- one or more image slides,
-- optional sidebar navigation,
-- CTA generation from authored content,
-- section-metadata driven layout and visual presets.
+The `hero-cta` block is a media-first hero with optional sidebar navigation and metadata-driven CTA styling.
 
-This block is designed for campaign, category, and launch surfaces where merchandising teams need predictable authoring and consistent runtime behavior.
+It now uses **typed row authoring** in DA.live to remove ambiguity:
+- `slide` rows for media + CTA content,
+- `nav` rows for sidebar entries,
+- `interval` rows for slide timing.
 
-## DA.live Integration
+## DA.live Integration and Authoring Structure
 
-### Authoring Table Structure
+Author using a **4-column** `hero-cta` table.
 
-Use a 3-column `hero-cta` table.
+### Typed Row Model
 
-| Column | Purpose | Required | Notes |
+| Row Type (Col 1) | Col 2 | Col 3 | Col 4 |
 |---|---|---|---|
-| 1 | Slide image, or `nav` marker | Yes | For slide rows, use an image source. For sidebar rows, use literal `nav`. |
-| 2 | Content/link lines | Yes | Slide CTAs are typically authored as `Label|URL`. Sidebar rows are nav label/link entries. |
-| 3 | Reserved | No | Not used by current implementation. |
+| `slide` | image/media cell | CTA labels (one per line or links) | CTA URLs (one per line or links) |
+| `nav` | mode: `item` or `header` | nav label (rich text preserved) | nav URL (for `item`) |
+| `interval` | interval in ms (for example `5000`) | unused | unused |
 
-### Authoring Patterns
+### Authoring Examples
 
-| Pattern | Rule | Example |
-|---|---|---|
-| Slide row | Image in col 1, CTA lines in col 2 | `hero-1.jpg` + `Shop New Arrivals|/new` |
-| Sidebar row | Set col 1 to `nav` | `nav` + `Women|/women` |
-| Interval row | Last row with one numeric cell | `5000` (milliseconds) |
+| Col 1 | Col 2 | Col 3 | Col 4 |
+|---|---|---|---|
+| `slide` | `[image]` | `Shop Shirts`<br>`Shop Hats` | `/shirts`<br>`/hats` |
+| `nav` | `header` | `Women` (can be authored as H1-H6 / bold / paragraph) | |
+| `nav` | `item` | `New Arrivals` | `/women/new` |
+| `nav` | `item` | `Jackets` | `/women/jackets` |
+| `interval` | `5000` | | |
 
-### Interval Behavior
+### Sidebar Header Behavior
 
-The block reads interval from the final row when that row has exactly one numeric cell. If no valid interval is provided, default is `5000` ms.
+When `nav` row mode is `header` (Column 2):
+- the row renders as a non-clickable sidebar heading,
+- it is styled as `.hero-cta-sidebar-header`,
+- no URL is required.
 
-### DA.live Model Options
+### Sidebar Label Typography Source
 
-| Field | Status | Notes |
-|---|---|---|
-| Block model fields | Not used as config source | Configuration is driven by section metadata and normalized in block JS. |
-
-### Section Metadata Placement
-
-Section metadata must be placed immediately above the `hero-cta` block.
+- Sidebar nav label typography is authored in DA.live (Column 3 of `nav` rows).
+- Downstream rendering preserves authored rich text structure for labels (for example headings, bold text, paragraph text).
+- `herocta-ctasize` controls CTA button text size only, not sidebar nav typography.
 
 ## Configuration Options
 
-### Canonical Metadata Contract
+### DA.live Model Options
 
-Use `herocta-*` keys only.
-
-- DA.live may emit double-prefixed dataset entries at runtime; block code handles both normalized and double-prefixed forms internally.
+| Option | Value |
+|---|---|
+| Block columns | `4` |
+| Supported typed rows | `slide`, `nav`, `interval` |
+| Sidebar header mode | `nav` row + Column 2 = `header` |
 
 ### Section Metadata Reference
 
-#### Layout and Placement
+Place section metadata immediately above the block.
 
-| Key | Default | Possible Values | Effect |
-|---|---|---|---|
-| `herocta-sidebar` | `off` | `off`, `left`, `right`, `overlay-left`, `overlay-right`, `sticky-left`, `sticky-right` | Enables sidebar mode and controls sidebar placement behavior. |
-| `herocta-position` | `bottom-right` | `top-left`, `top-center`, `top-right`, `middle-left`, `middle-center`, `middle-right`, `bottom-left`, `bottom-center`, `bottom-right` | Sets the CTA/content anchor point on both axes. |
-| `herocta-inset` | `medium` | `xsmall`, `small`, `medium`, `large`, `xlarge` | Sets linear distance from edges for anchored content (same inset on all sides). |
-| `herocta-size` | `tall` | `short`, `medium`, `tall`, `fullscreen` | Hero block height preset. |
-| `herocta-contentwidth` | `420` | `360`, `420`, `520`, `640` | Max width of content column in pixels. |
+#### Layout
 
-#### Button Styling
+| Key | Possible Values | Effect |
+|---|---|---|
+| `herocta-position` | `top-left`, `top-center`, `top-right`, `middle-left`, `middle-center`, `middle-right`, `bottom-left`, `bottom-center`, `bottom-right` | Default: `bottom-right`. Controls overlay anchor point for CTA content on both axes. |
+| `herocta-size` | `short`, `medium`, `tall`, `fullscreen` | Default: `tall`. Controls hero height preset. |
+| `herocta-inset` | `xsmall`, `small`, `medium`, `large`, `xlarge` | Default: `medium`. Controls linear distance of overlay content from edges. |
+| `herocta-contentwidth` | `360`, `420`, `520`, `640` | Default: `420`. Sets maximum CTA/content surface width in pixels. |
+| `herocta-width` | `default`, `full-width` | Default: `default`. Controls container width mode. `full-width` becomes no-op when sidebar is enabled. |
+| `herocta-sidebar` | `left`, `right`, `overlay-left`, `overlay-right`, `sticky-left`, `sticky-right` | Default: `off` (unset). Enables sidebar placement mode when typed `nav` rows exist. |
+| `herocta-imgmax` | `1200`, `1600`, `2000`, `2400`, `3000`, `3600` | Default: `2400`. Controls responsive image max width cap used for optimized picture breakpoints. |
 
-| Key | Default | Possible Values | Effect |
-|---|---|---|---|
-| `herocta-btnstyle` | `outline` | `outline`, `solid`, `ghost`, `elevated`, `glass`, `soft`, `pill`, `link`, `inset`, `underline`, `quiet`, `strong`, `halo`, `bevel`, `tab`, `rail`, `outline-double`, `compact` | Structure-only button style treatment (shape/surface behavior). Does not set color. |
-| `herocta-btncorner` | `derived` | `default`, `soft`, `rounded-lg`, `pill`, `none` | Explicit corner override. If omitted, corner is derived from button style defaults. |
-| `herocta-btnwidth` | `medium` | `auto`, `narrow`, `medium`, `wide`, `fluid`, `fit-content` | CTA width sizing behavior. |
-| `herocta-btncolor` | `white` | `transparent`, `light`, `neutral`, `dark`, `brand`, `accent`, `white`, `black`, `#RGB`, `#RRGGBB`, `rgb(...)`, `rgba(...)` | CTA border color only. |
-| `herocta-btnfill` | `transparent` | `transparent`, `light`, `neutral`, `dark`, `brand`, `accent`, `white`, `black`, `#RGB`, `#RRGGBB`, `rgb(...)`, `rgba(...)` | CTA fill/background color only. |
-| `herocta-btntext` | `white` | `white`, `dark`, `brand`, `accent`, `inherit`, `#RGB`, `#RRGGBB`, `rgb(...)`, `rgba(...)` | CTA text color only. |
-| `herocta-btnborder` | `3` | `1`, `2`, `3`, `4` | CTA border width in pixels. |
+#### CTA/Button
 
-#### Button Style Presets
+| Key | Possible Values | Effect |
+|---|---|---|
+| `herocta-btnstyle` | `outline`, `solid`, `elevated`, `glass`, `soft`, `soft-glow`, `neo`, `ribbon`, `stamp`, `link`, `inset`, `underline`, `quiet`, `strong`, `halo`, `bevel`, `tab`, `rail`, `outline-double`, `compact`, `corner-pins`, `ticket`, `capsule-cut`, `brace`, `double-notch`, `frame-gap`, `split-edge`, `fold`, `badge`, `pixel-step` | Default: `elevated`. Controls button structure/chrome only. |
+| `herocta-btncorner` | `default`, `soft`, `rounded-lg`, `pill`, `none` | Default: unset. Optional explicit corner override for CTA shape. |
+| `herocta-btnwidth` | `auto`, `narrow`, `medium`, `wide`, `fluid`, `fit-content` | Default: `medium`. Controls CTA width sizing. |
+| `herocta-btnborder` | `1`, `2`, `3`, `4` | Default: `3`. Controls CTA border thickness in px. |
+| `herocta-btncolor` | token values (`transparent`, `light`, `neutral`, `dark`, `brand`, `accent`, `white`, `black`) or color literals (`#hex`, `rgb(...)`, `rgba(...)`) | Default: `white`. Controls CTA border color only. |
+| `herocta-btnfill` | token values (`transparent`, `light`, `neutral`, `dark`, `brand`, `accent`, `white`, `black`) or color literals (`#hex`, `rgb(...)`, `rgba(...)`) | Default: `transparent`. Controls CTA fill color only. |
+| `herocta-btntext` | `white`, `dark`, `brand`, `accent`, `inherit` or color literals | Default: `white`. Controls CTA text color only. |
+| `herocta-btnhover` | `none`, `lift`, `press`, `pop`, `nudge`, `tilt`, `swing`, `pulse` | Default: `lift`. Motion-only hover behavior. |
+| `herocta-ctalayout` | `stack`, `inline`, `split` | Default: `stack`. Controls CTA grouping layout. |
+| `herocta-ctagap` | `xsmall`, `small`, `medium`, `large` | Default: `medium`. Controls spacing between CTA items. |
+| `herocta-ctacase` | `none`, `uppercase`, `capitalize` | Default: `none`. Controls CTA text transform. |
+| `herocta-ctasize` | `default`, `sm`, `md`, `lg` | Default: `default`. Controls CTA font size preset. |
 
-`herocta-btnstyle` is structure-only. Color comes from `herocta-btncolor`, `herocta-btnfill`, and `herocta-btntext`.
+#### Frame/Image
 
-| Style | Runtime Effect |
-|---|---|
-| `outline` | Baseline button treatment; no additional style override. |
-| `solid` | Square corners (`border-radius: 0`). |
-| `ghost` | Dashed border (`border-style: dashed`). |
-| `elevated` | Lifted card treatment with stronger drop shadows and slight upward offset. |
-| `glass` | Glass treatment with blur/saturation and dual stroke ring. |
-| `soft` | Softer corner radius (`14px`) with thinner border weight (`2px`). |
-| `pill` | Full pill corners (`border-radius: 999px`). |
-| `link` | Text-link button shell (`border: 0`, underline, intrinsic width, no shadow). |
-| `inset` | Pressed treatment (`border-style: double` with inset shadow stack). |
-| `underline` | Bottom-rule style (`border-width: 0 0 ...`, zero radius). |
-| `quiet` | Minimal emphasis (`border-width: 1px`). |
-| `strong` | High-emphasis border and label weight (`border-width: 4px`, `font-weight: 700`). |
-| `halo` | Outer halo ring plus soft elevation shadow. |
-| `bevel` | Angled/chamfered silhouette via `clip-path` polygon. |
-| `tab` | Tab profile (`border-radius: 14px 14px 0 0`). |
-| `rail` | Side-rail emphasis (`border-left/right` width increased). |
-| `outline-double` | Double-line border style (`border-style: double`). |
-| `compact` | Tighter horizontal footprint (`padding-inline: 20px`) and slight letter spacing increase. |
+| Key | Possible Values | Effect |
+|---|---|---|
+| `herocta-frame` | `default`, `soft-small`, `soft-medium`, `soft-large`, `outline`, `double-stroke`, `glass-ring`, `floating-panel`, `halo-ring`, `photo-matte`, `edge-rails`, `topline-accent`, `duo-effect` | Default: `default`. Applies frame treatment to hero container. |
 
-#### CTA Group
+#### Motion
 
-| Key | Default | Possible Values | Effect |
-|---|---|---|---|
-| `herocta-btnhover` | `lift` | `none`, `lift`, `press`, `pop`, `nudge`, `tilt`, `swing`, `pulse` | Motion-only hover interaction style for CTAs. |
-| `herocta-ctalayout` | `stack` | `stack`, `inline`, `split` | CTA group layout mode. |
-| `herocta-ctagap` | `medium` | `xsmall`, `small`, `medium`, `large` | Spacing between CTA items. |
-| `herocta-ctacase` | `none` | `none`, `uppercase`, `capitalize` | CTA text transform. |
-| `herocta-ctasize` | `default` | `default`, `sm`, `md`, `lg` | CTA text size preset. |
-
-#### Motion and Slide Behavior
-
-| Key | Default | Possible Values | Effect |
-|---|---|---|---|
-| `herocta-transition` | `fade` | `fade`, `slide`, `none` | Slide transition style. |
-
-#### Frame and Image Delivery
-
-| Key | Default | Possible Values | Effect |
-|---|---|---|---|
-| `herocta-frame` | `default` | `default`, `soft-small`, `soft-medium`, `soft-large`, `outline`, `elevated`, `double-stroke`, `glass-ring`, `gradient-ring`, `photo-matte` | Frame/radius/elevation treatment applied to the hero container. |
-| `herocta-imgmax` | `2400` | `1200`, `1600`, `2000`, `2400`, `3000`, `3600` | Max responsive image width cap used in optimized picture breakpoints. |
+| Key | Possible Values | Effect |
+|---|---|---|
+| `herocta-transition` | `fade`, `slide`, `none` | Default: `fade`. Controls slide transition behavior. |
 
 ## Behavior Patterns
 
-### Slide and Sidebar Resolution
+### Metadata Precedence
 
-1. Rows with col 1 value `nav` are treated as sidebar navigation rows.
-2. All other rows are treated as slide rows.
-3. Sidebar is rendered only when `herocta-sidebar` resolves to an enabled value and at least one valid nav row exists.
+The block resolves configuration in this order:
+1. Layout tier (`position`, `size`, `sidebar`, `width`, `inset`, `content width`, `image max width`)
+2. Content/structure tier (`cta layout`, `gap`, `case`, `font size`, `button width`)
+3. Style/shape tier (`button style`, `button corner`, `button border width`)
+4. Color/explicit overrides tier (`button border/fill/text colors`)
+5. Media/motion tier (`slide transition`, `image frame`, `button hover motion`)
 
-### CTA Extraction
+### Override Rules
 
-CTA generation behavior in slide content:
-- Existing `.button` links are preserved.
-- Standard links are normalized as CTA buttons.
-- Plain text in `Label|URL` format is converted into anchor CTA buttons.
-- `#` URLs are marked disabled (`aria-disabled="true"`, no tab stop).
-- Column 3 is ignored by current implementation.
+| Condition | Winner | Ignored/No-op | User-visible effect |
+|---|---|---|---|
+| `herocta-width=full-width` with sidebar enabled | Sidebar/layout constraint | `herocta-width=full-width` | Block uses default width to preserve sidebar geometry. |
+| `herocta-btnstyle=link` with border/corner settings | Link style | corner/border settings | CTA renders as text-link style. |
+| `herocta-ctalayout=split` with fewer than 2 CTAs | Content count | split intent | Split grid cannot form; warning is logged. |
 
-### Short Size Button Width Rule
+### Conflict/No-op Notes
 
-When `herocta-size=short`, CTA width resolves to `medium` unless `herocta-btnwidth` is explicitly set.
+- Sidebar requires typed `nav` rows; enabling `herocta-sidebar` without typed nav rows logs a warning and renders no sidebar.
+- Invalid metadata values normalize to defaults with block-prefixed warnings.
+- `nav` rows with `header` mode intentionally ignore URL values.
+- Sidebar label text size/weight is not metadata-driven; it comes from authored DA.live text formatting in `nav` label cells.
 
-## Accessibility
+## Accessibility Notes
 
-- First slide image is eager-loaded for LCP; additional slides are lazy.
-- Slide rotation is disabled when `prefers-reduced-motion: reduce` is active.
-- CTA links include focus-visible treatment.
-- Hover animation presets are motion-only; reduced-motion mode removes hover transforms/animations.
-- Disabled placeholder links (`#`) are marked as disabled for assistive technology and keyboard flow.
-
-## Performance Notes
-
-- Uses `createOptimizedPicture` with responsive breakpoints.
-- `herocta-imgmax` controls upper image width cap and therefore bandwidth/quality tradeoff.
-- Loading state is removed on first image load with a 3-second fallback timeout.
+- First slide image is eager-loaded for LCP optimization.
+- CTA disabled placeholders are marked non-focusable.
+- Sidebar headers are non-interactive semantic text.
+- Focus-visible states are provided for CTA and sidebar links.
+- Reduced-motion media query disables heavy hover animations.
 
 ## Troubleshooting
 
 | Symptom | Likely Cause | Resolution |
 |---|---|---|
-| Sidebar does not appear | `herocta-sidebar` is `off`, invalid, or no valid `nav` rows exist | Set `herocta-sidebar` to a valid value and add `nav` rows in col 1. |
-| CTA/content position not changing | Invalid `herocta-position` value | Use one of the 9 position anchors (for example, `middle-center`). |
-| CTA distance from edges not changing | Invalid `herocta-inset` value | Use one of: `xsmall`, `small`, `medium`, `large`, `xlarge`. |
-| CTA hover changes unexpectedly | Invalid `herocta-btnhover` value normalized to default | Use one of the supported motion-only values. |
-| CTA colors do not match expectation | Color channels are independent | Set `herocta-btncolor` (border), `herocta-btnfill` (fill), and `herocta-btntext` (text) explicitly. |
-| Column 3 values have no effect | Column 3 is reserved in current implementation | Move visual control to section metadata keys. |
-| Interval ignored | Final row is not single numeric cell | Make final row one-cell numeric value (e.g., `5000`). |
-| Frame style not visible | Invalid `herocta-frame` value, or subtle frame style selected | Use a supported frame value and test with a visibly distinct option (for example `outline` or `photo-matte`). |
-
-## Example Section Metadata (Default Experience)
-
-| Section Metadata | Value |
-|---|---|
-| `herocta-sidebar` | `off` |
-| `herocta-position` | `bottom-right` |
-| `herocta-inset` | `medium` |
-| `herocta-btnstyle` | `outline` |
-| `herocta-btncolor` | `white` |
-| `herocta-btnfill` | `transparent` |
-| `herocta-btntext` | `white` |
-| `herocta-btnwidth` | `medium` |
-| `herocta-frame` | `default` |
-| `herocta-btnhover` | `lift` |
+| Sidebar not visible | No typed `nav` rows authored | Add `nav` rows with mode `item` or `header`. |
+| Sidebar title should be non-clickable | Nav row mode not set | Set `nav` row Column 2 to `header`. |
+| Sidebar text size/weight not changing via metadata | Sidebar typography is author-driven | Apply DA.live text formatting in `nav` label cell (Column 3), for example H2/H3/bold. |
+| CTA labels render but links do not | Slide URLs missing | Add URLs in `slide` row Column 4. |
+| Interval not applied | `interval` row value invalid | Use numeric ms in Column 2 (for example `5000`). |
+| Full-width not applying | Sidebar enabled | Disable sidebar or keep width as `default`. |

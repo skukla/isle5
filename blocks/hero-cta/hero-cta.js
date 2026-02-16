@@ -32,14 +32,12 @@ function normalizeButtonStyle(value, fallback) {
     [
       'outline',
       'solid',
-      'ghost',
       'elevated',
       'glass',
       'soft',
       'soft-glow',
       'neo',
       'ribbon',
-      'split-tone',
       'stamp',
       'link',
       'inset',
@@ -52,6 +50,16 @@ function normalizeButtonStyle(value, fallback) {
       'rail',
       'outline-double',
       'compact',
+      'corner-pins',
+      'ticket',
+      'capsule-cut',
+      'brace',
+      'double-notch',
+      'frame-gap',
+      'split-edge',
+      'fold',
+      'badge',
+      'pixel-step',
     ].includes(val)
   ) return val;
   return fallback;
@@ -157,6 +165,9 @@ function normalizeImageFrameStyle(value, fallback = 'default') {
       'floating-panel',
       'halo-ring',
       'photo-matte',
+      'edge-rails',
+      'topline-accent',
+      'duo-effect',
     ].includes(val)
   ) return val;
   return fallback;
@@ -310,6 +321,35 @@ function warnOnNoOpConfig(name, rawValue, reason) {
   console.warn(`hero-cta: ${name} "${rawValue}" has no effect. ${reason}`);
 }
 
+function cloneLabelContent(cell, fallbackLabel = '') {
+  const fragment = document.createDocumentFragment();
+  if (!cell) {
+    if (fallbackLabel) fragment.append(document.createTextNode(fallbackLabel));
+    return fragment;
+  }
+
+  const children = [...cell.childNodes];
+  if (!children.length) {
+    if (fallbackLabel) fragment.append(document.createTextNode(fallbackLabel));
+    return fragment;
+  }
+
+  children.forEach((node) => {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const tag = node.tagName.toLowerCase();
+      if (tag === 'a' || tag === 'button') {
+        const span = document.createElement('span');
+        span.textContent = node.textContent?.trim() || '';
+        fragment.append(span);
+        return;
+      }
+    }
+    fragment.append(node.cloneNode(true));
+  });
+
+  return fragment;
+}
+
 function parseTypedRows(rows) {
   const slideRows = [];
   const navEntries = [];
@@ -360,6 +400,7 @@ function parseTypedRows(rows) {
         navEntries.push({
           type: 'header',
           label,
+          labelCell: labelCell?.cloneNode(true) || null,
         });
         return;
       }
@@ -369,6 +410,7 @@ function parseTypedRows(rows) {
         label,
         href,
         target,
+        labelCell: labelCell?.cloneNode(true) || null,
       });
       return;
     }
@@ -400,14 +442,14 @@ function buildSidebar(navEntries) {
     li.className = 'hero-cta-sidebar-item';
 
     if (entry.type === 'header') {
-      const header = document.createElement('p');
+      const header = document.createElement('div');
       header.className = 'hero-cta-sidebar-header';
-      header.textContent = entry.label;
+      header.append(cloneLabelContent(entry.labelCell, entry.label));
       li.append(header);
     } else {
       const link = document.createElement('a');
       link.className = 'hero-cta-sidebar-link';
-      link.textContent = entry.label;
+      link.append(cloneLabelContent(entry.labelCell, entry.label));
       if (entry.href) {
         link.href = entry.href;
         setLinkTargetAttributes(link, entry.target);
