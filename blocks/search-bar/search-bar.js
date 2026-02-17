@@ -7,9 +7,16 @@ const MAX_MIN_QUERY_LENGTH = 5;
 const DEFAULT_DEBOUNCE_MS = 80;
 const MIN_DEBOUNCE_MS = 0;
 const MAX_DEBOUNCE_MS = 1000;
+const DEFAULT_OPEN_DELAY_MS = 0;
+const MIN_OPEN_DELAY_MS = 0;
+const MAX_OPEN_DELAY_MS = 1000;
 const DEFAULT_RESULT_COUNT = 8;
 const MIN_RESULT_COUNT = 2;
 const MAX_RESULT_COUNT = 20;
+const DEFAULT_PANEL_MAX_HEIGHT_PX = 576;
+const MIN_PANEL_MAX_HEIGHT_PX = 200;
+const MAX_PANEL_MAX_HEIGHT_PX = 1200;
+const DEFAULT_VIEW_ALL_MODE = 'auto';
 const DEFAULT_PLACEHOLDER = 'Search products...';
 let searchBarInstanceCounter = 0;
 
@@ -40,6 +47,29 @@ function normalizeAlignment(value, fallback = 'center') {
   const normalized = (value || '').toString().trim().toLowerCase();
   if (normalized === 'full') return 'wide';
   return ['left', 'center', 'right', 'wide'].includes(normalized) ? normalized : fallback;
+}
+
+function normalizeViewAllMode(value, fallback = DEFAULT_VIEW_ALL_MODE) {
+  const normalized = (value || '').toString().trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (['auto', 'always', 'never'].includes(normalized)) return normalized;
+  // eslint-disable-next-line no-console
+  console.warn(`search-bar: invalid searchbar-viewall "${value}". Using "${fallback}".`);
+  return fallback;
+}
+
+function normalizePanelMaxHeight(value, fallback = DEFAULT_PANEL_MAX_HEIGHT_PX) {
+  const normalized = (value || '').toString().trim().toLowerCase();
+  if (!normalized || normalized === 'default') return fallback;
+  if (normalized === 'compact') return 420;
+  if (normalized === 'tall') return 720;
+  const parsed = Number.parseInt(normalized, 10);
+  if (!Number.isFinite(parsed)) {
+    // eslint-disable-next-line no-console
+    console.warn(`search-bar: invalid searchbar-maxheight "${value}". Using "${fallback}".`);
+    return fallback;
+  }
+  return Math.min(MAX_PANEL_MAX_HEIGHT_PX, Math.max(MIN_PANEL_MAX_HEIGHT_PX, parsed));
 }
 
 function parseBlockConfig(block) {
@@ -93,17 +123,35 @@ function parseBlockConfig(block) {
     MIN_DEBOUNCE_MS,
     MAX_DEBOUNCE_MS,
   );
-
-  const rawStyle = getConfigValue(
-    block.dataset.searchbarStyle || block.dataset.style,
-    sectionData,
-    ['searchbarStyle', 'dataSearchbarStyle', 'style', 'dataStyle', 'dataDataStyle'],
-    '',
+  const openDelayMs = sanitizeInteger(
+    getConfigValue(
+      block.dataset.searchbarOpendelay,
+      sectionData,
+      ['searchbarOpendelay', 'dataSearchbarOpendelay'],
+      `${DEFAULT_OPEN_DELAY_MS}`,
+    ),
+    DEFAULT_OPEN_DELAY_MS,
+    MIN_OPEN_DELAY_MS,
+    MAX_OPEN_DELAY_MS,
   );
-  if (rawStyle && rawStyle.toString().trim().toLowerCase() !== 'default') {
-    // eslint-disable-next-line no-console
-    console.warn(`search-bar: style preset "${rawStyle}" is deprecated. Using default style.`);
-  }
+  const panelMaxHeightPx = normalizePanelMaxHeight(
+    getConfigValue(
+      block.dataset.searchbarMaxheight,
+      sectionData,
+      ['searchbarMaxheight', 'dataSearchbarMaxheight'],
+      `${DEFAULT_PANEL_MAX_HEIGHT_PX}`,
+    ),
+    DEFAULT_PANEL_MAX_HEIGHT_PX,
+  );
+  const viewAllMode = normalizeViewAllMode(
+    getConfigValue(
+      block.dataset.searchbarViewall,
+      sectionData,
+      ['searchbarViewall', 'dataSearchbarViewall'],
+      DEFAULT_VIEW_ALL_MODE,
+    ),
+    DEFAULT_VIEW_ALL_MODE,
+  );
 
   return {
     placeholder,
@@ -111,6 +159,9 @@ function parseBlockConfig(block) {
     resultCount,
     minQueryLength,
     debounceMs,
+    openDelayMs,
+    panelMaxHeightPx,
+    viewAllMode,
   };
 }
 
@@ -136,8 +187,13 @@ export default async function decorate(block) {
   const instanceId = getUniqueId('searchbar');
   const resultsId = getUniqueId('search-results');
   const searchScope = `${SEARCH_SCOPE_PREFIX}-${instanceId}`;
-
-  block.dataset.searchbarStyle = 'default';
+  block.dataset.searchbarAlign = config.position;
+  block.dataset.searchbarResults = `${config.resultCount}`;
+  block.dataset.searchbarMinquery = `${config.minQueryLength}`;
+  block.dataset.searchbarDebounce = `${config.debounceMs}`;
+  block.dataset.searchbarOpendelay = `${config.openDelayMs}`;
+  block.dataset.searchbarMaxheight = `${config.panelMaxHeightPx}`;
+  block.dataset.searchbarViewall = config.viewAllMode;
 
   const searchBarContainer = document.createElement('div');
   searchBarContainer.classList.add('search-bar-container', `search-bar--${config.position}`);
@@ -199,9 +255,12 @@ export default async function decorate(block) {
   let search;
   let clearAnnouncementTimer;
   let debounceTimer;
+  let openResultsTimer;
   let disconnectionObserver;
   let latestTypedPhrase = '';
   let dispatchedPhrase = '';
+  let latestResultCount = 0;
+  let viewAllResultsWrapper;
 
   const clearTimers = () => {
     if (clearAnnouncementTimer) {
@@ -211,6 +270,10 @@ export default async function decorate(block) {
     if (debounceTimer) {
       clearTimeout(debounceTimer);
       debounceTimer = undefined;
+    }
+    if (openResultsTimer) {
+      clearTimeout(openResultsTimer);
+      openResultsTimer = undefined;
     }
   };
 
@@ -240,6 +303,14 @@ export default async function decorate(block) {
     applyInputA11y(searchInput, resultsId, isOpen);
   };
 
+  const syncViewAllVisibility = () => {
+    if (!viewAllResultsWrapper) return;
+    let isVisible = latestResultCount > 0;
+    if (config.viewAllMode === 'never') isVisible = false;
+    if (config.viewAllMode === 'auto') isVisible = latestResultCount >= config.resultCount;
+    viewAllResultsWrapper.hidden = !isVisible;
+  };
+
   const lockPanelHeight = () => {
     if (!resultsDiv.classList.contains('is-open')) return;
     const currentHeight = Math.round(resultsDiv.getBoundingClientRect().height);
@@ -260,11 +331,33 @@ export default async function decorate(block) {
     const viewportCap = Math.round(window.innerHeight * (isMobile ? 0.68 : 0.7));
     const contentHeight = Math.ceil(resultsDiv.scrollHeight);
     const minOpenHeight = 120;
-    const nextMaxHeight = Math.max(minOpenHeight, Math.min(contentHeight, viewportCap));
+    const configuredCap = Math.min(viewportCap, config.panelMaxHeightPx);
+    const nextMaxHeight = Math.max(minOpenHeight, Math.min(contentHeight, configuredCap));
     resultsDiv.style.maxHeight = `${nextMaxHeight}px`;
   };
 
+  const openResults = (onOpen) => {
+    if (openResultsTimer) {
+      clearTimeout(openResultsTimer);
+      openResultsTimer = undefined;
+    }
+    if (config.openDelayMs <= 0) {
+      setResultsOpen(true);
+      onOpen?.();
+      return;
+    }
+    openResultsTimer = setTimeout(() => {
+      setResultsOpen(true);
+      openResultsTimer = undefined;
+      onOpen?.();
+    }, config.openDelayMs);
+  };
+
   const closeResults = (announcement = '') => {
+    if (openResultsTimer) {
+      clearTimeout(openResultsTimer);
+      openResultsTimer = undefined;
+    }
     setResultsOpen(false);
     resultsDiv.setAttribute('aria-busy', 'false');
     resultsDiv.style.removeProperty('max-height');
@@ -407,24 +500,28 @@ export default async function decorate(block) {
         }
 
         const hasResults = results.length > 0;
-        setResultsOpen(hasResults);
+        latestResultCount = results.length;
+        syncViewAllVisibility();
         resultsDiv.setAttribute('aria-busy', 'false');
         resultsDiv.dataset.resultCount = `${results.length}`;
 
         if (hasResults) {
-          requestAnimationFrame(() => {
-            syncPanelHeight();
-            unlockPanelHeight();
+          openResults(() => {
+            requestAnimationFrame(() => {
+              syncPanelHeight();
+              unlockPanelHeight();
+            });
           });
           announce(`${results.length} ${results.length === 1 ? uiText.resultFound : uiText.resultsFound}`);
         } else {
+          closeResults();
           unlockPanelHeight();
           announce('');
         }
       },
       slots: {
         Footer: async (ctx) => {
-          const viewAllResultsWrapper = document.createElement('div');
+          viewAllResultsWrapper = document.createElement('div');
           viewAllResultsWrapper.classList.add('search-bar-view-all');
 
           const viewAllResultsButton = await UI.render(Button, {
@@ -434,6 +531,7 @@ export default async function decorate(block) {
           })(viewAllResultsWrapper);
 
           ctx.appendChild(viewAllResultsWrapper);
+          syncViewAllVisibility();
 
           ctx.onChange((next) => {
             viewAllResultsButton?.setProps((prev) => ({

@@ -39,8 +39,10 @@ Place **Section Metadata immediately above** the `search-bar` block.
 | `searchbar-align` | `center` | `left`, `center`, `right`, `wide` | Positions search bar in the section, or stretches it to full available section width with `wide`. |
 | `searchbar-results` | `8` | `2` to `20` | Controls number of inline product results requested/rendered. |
 | `searchbar-minquery` | `2` | `1` to `5` | Minimum input length before inline search executes. |
-| `searchbar-debounce` | `180` | `0` to `1000` | Debounce delay in milliseconds for inline search requests. |
-| `searchbar-style` | `default` | `default` | Reserved key. Visual presets are removed; non-default values are ignored with a warning. |
+| `searchbar-debounce` | `80` | `0` to `1000` | Debounce delay in milliseconds for inline search requests. |
+| `searchbar-opendelay` | `0` | `0` to `1000` | Adds a delay (ms) before opening the inline results panel after results arrive. |
+| `searchbar-maxheight` | `576` | `compact`, `default`, `tall`, or `200` to `1200` (px) | Caps inline results panel height before it scrolls internally. |
+| `searchbar-viewall` | `auto` | `auto`, `always`, `never` | Controls footer “View All Results” visibility: `auto` shows when inline results hit the page size limit, `always` shows whenever there are results, `never` hides it. |
 
 ## Behavior Patterns
 
