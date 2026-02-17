@@ -1,113 +1,68 @@
 const DEFAULTS = {
-  bannerMode: 'static',
-  bannerMount: 'header',
-  bannerMountTarget: 'header .header.block',
-  bannerLayout: 'split',
-  bannerAriaLive: 'off',
-  bannerAlign: 'left',
-  bannerVariant: 'neutral',
-  bannerDismissible: false,
-  bannerDismissScope: 'session',
-  bannerMaxWidth: 'none',
-  bannerTextSize: 'md',
-  bannerTextWeight: '500',
-  bannerDensity: 'default',
-  bannerContentGap: 'none',
-  bannerBgColor: 'neutral',
-  bannerTextColor: 'dark',
-  tickerSpeed: 'medium',
-  tickerDirection: 'left',
-  tickerPauseOnHover: true,
-  tickerLoopGap: 'medium',
-  tickerSource: 'all',
-  tickerControls: false,
-  tickerMobileMode: 'static',
-  bannerDebug: false,
-  bannerRegion: 'global',
-  bannerAudience: 'all',
-  bannerAnalyticsId: '',
+  mode: 'static',
+  mount: 'header',
+  mountTarget: 'header .header.block',
+  layout: 'split',
+  ariaLive: 'off',
+  align: 'left',
+  variant: 'neutral',
+  maxWidth: 'none',
+  textSize: 'md',
+  textWeight: '500',
+  density: 'default',
+  contentGap: 'none',
+  bgColor: 'neutral',
+  textColor: 'dark',
+  speed: 'medium',
+  direction: 'left',
+  pauseOnHover: true,
+  loopGap: 'medium',
+  source: 'all',
+  controls: false,
+  debug: false,
 };
 
-let resizeObserver;
-let resizeBound = false;
-let currentBannerBlock = null;
-let navWrapperObserver = null;
-let navObserverBlock = null;
+const TYPED_ROW_TYPES = ['message', 'utility', 'ticker-item'];
+const REQUIRED_WIDTHS = [360, 390, 414, 480, 768, 1024, 1280, 1440, 1920];
 
-function onWindowResize() {
-  if (currentBannerBlock) {
-    updateTopBannerOffset(currentBannerBlock);
-  }
+const INSTANCE_STATE = new WeakMap();
+
+const COLOR_MAP = {
+  transparent: 'transparent',
+  light: 'var(--color-neutral-100)',
+  neutral: 'var(--color-neutral-200)',
+  dark: 'var(--color-neutral-900)',
+  brand: 'var(--color-brand-500)',
+  accent: 'var(--color-informational-500)',
+  white: 'var(--color-neutral-50)',
+  black: '#000',
+};
+
+function capitalize(value) {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
 
-function debugLog(block, message, details = {}) {
-  if (block?.dataset?.bannerDebug !== 'true') return;
+function debugLog(config, message, details = {}) {
+  if (!config.debug) return;
   // eslint-disable-next-line no-console
   console.log(`top-banner: ${message}`, details);
 }
 
-function stopNavWrapperObserver() {
-  if (navWrapperObserver) {
-    navWrapperObserver.disconnect();
-    navWrapperObserver = null;
-    navObserverBlock = null;
-  }
+function warnInvalidConfig(key, rawValue, fallback) {
+  if (!rawValue || !rawValue.toString().trim()) return;
+  // eslint-disable-next-line no-console
+  console.warn(`top-banner: invalid ${key} "${rawValue}". Using "${fallback}".`);
 }
 
-function ensureNavWrapperObserver(block) {
-  if (!block || typeof MutationObserver === 'undefined') return;
-  if (document.querySelector('header .nav-wrapper')) return;
-
-  // Reuse active observer for the same block instance.
-  if (navWrapperObserver && navObserverBlock === block) return;
-  stopNavWrapperObserver();
-
-  const observeTarget = document.querySelector('header .header.block')
-    || document.querySelector('header .header')
-    || document.querySelector('header')
-    || document.body;
-  if (!observeTarget) return;
-
-  navObserverBlock = block;
-  navWrapperObserver = new MutationObserver(() => {
-    if (document.querySelector('header .nav-wrapper')) {
-      stopNavWrapperObserver();
-      updateTopBannerOffset(block);
-    }
-  });
-
-  navWrapperObserver.observe(observeTarget, { childList: true, subtree: true });
+function warnLegacyConfig(legacyKey, canonicalKey) {
+  // eslint-disable-next-line no-console
+  console.warn(`top-banner: legacy metadata "${legacyKey}" used. Prefer "${canonicalKey}".`);
 }
 
-function getConfigValue(blockValue, sectionData, keys, fallback) {
-  if (blockValue) return blockValue;
-  for (let i = 0; i < keys.length; i += 1) {
-    if (sectionData?.[keys[i]]) return sectionData[keys[i]];
-  }
-  return fallback;
-}
-
-function normalizeToken(value, allowed, fallback) {
-  const val = (value || '').toString().trim().toLowerCase();
-  return allowed.includes(val) ? val : fallback;
-}
-
-function normalizeBoolean(value, fallback = false) {
-  const val = (value || '').toString().trim().toLowerCase();
-  if (['true', '1', 'yes', 'on'].includes(val)) return true;
-  if (['false', '0', 'no', 'off'].includes(val)) return false;
-  return fallback;
-}
-
-function normalizeColor(value, fallback) {
-  const raw = (value || '').toString().trim();
-  if (!raw) return fallback;
-  const val = raw.toLowerCase();
-  const named = ['transparent', 'light', 'neutral', 'dark', 'brand', 'accent', 'white', 'black'];
-  if (named.includes(val)) return val;
-  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw;
-  if (/^rgba?\(/i.test(raw)) return raw;
-  return fallback;
+function warnNoOpConfig(key, value, reason) {
+  if (!value || !value.toString().trim()) return;
+  // eslint-disable-next-line no-console
+  console.warn(`top-banner: ${key} "${value}" has no effect. ${reason}`);
 }
 
 function hasMeaningfulContent(cell) {
@@ -115,18 +70,36 @@ function hasMeaningfulContent(cell) {
 }
 
 function cloneCellContent(cell) {
-  const frag = document.createDocumentFragment();
-  if (!cell) return frag;
+  const fragment = document.createDocumentFragment();
+  if (!cell) return fragment;
   [...cell.childNodes].forEach((node) => {
-    frag.append(node.cloneNode(true));
+    fragment.append(node.cloneNode(true));
   });
-  return frag;
+  return fragment;
+}
+
+function normalizeTypedRowType(value) {
+  const raw = (value || '').toString().trim().toLowerCase();
+  if (raw === 'ticker' || raw === 'tickeritem') return 'ticker-item';
+  return TYPED_ROW_TYPES.includes(raw) ? raw : '';
 }
 
 function parseRows(block) {
   return [...block.children].map((row) => {
     const cells = [...row.children];
+    const type = normalizeTypedRowType(cells[0]?.textContent || '');
+
+    if (type && cells.length > 1) {
+      return {
+        type,
+        left: cells[1] || null,
+        center: cells[2] || null,
+        right: cells[3] || null,
+      };
+    }
+
     return {
+      type: 'legacy',
       left: cells[0] || null,
       center: cells[1] || null,
       right: cells[2] || null,
@@ -134,29 +107,176 @@ function parseRows(block) {
   });
 }
 
-function normalizeMountTarget(value, fallback) {
-  const val = (value || '').toString().trim();
-  return val || fallback;
+function resolveRowGroups(rows) {
+  const hasTyped = rows.some((row) => row.type !== 'legacy');
+  if (!hasTyped) {
+    return {
+      hasTyped: false,
+      messageRow: rows[0] || { left: null, center: null, right: null },
+      utilityRows: [],
+      tickerRows: rows,
+    };
+  }
+
+  const messageRow = rows.find((row) => row.type === 'message')
+    || rows.find((row) => row.type === 'legacy')
+    || rows[0]
+    || { left: null, center: null, right: null };
+
+  const utilityRows = rows.filter((row) => row.type === 'utility');
+  const explicitTickerRows = rows.filter((row) => row.type === 'ticker-item');
+  const tickerRows = explicitTickerRows.length ? explicitTickerRows : [messageRow, ...utilityRows];
+
+  return {
+    hasTyped: true,
+    messageRow,
+    utilityRows,
+    tickerRows,
+  };
 }
 
-function resolveColorToken(value, map) {
-  const key = (value || '').toLowerCase();
-  return map[key] || value;
+function readConfigValue(block, sectionData, canonicalKey, fallback, legacyKeys = []) {
+  const canonicalCandidates = [
+    canonicalKey,
+    `data${capitalize(canonicalKey)}`,
+  ];
+
+  const legacyCandidates = legacyKeys;
+  const allCandidates = [...canonicalCandidates, ...legacyCandidates];
+
+  for (let i = 0; i < allCandidates.length; i += 1) {
+    const candidate = allCandidates[i];
+    const blockValue = block.dataset?.[candidate];
+    if (typeof blockValue === 'string' && blockValue.trim()) {
+      return {
+        value: blockValue,
+        source: candidate,
+        legacy: legacyCandidates.includes(candidate),
+      };
+    }
+
+    const sectionValue = sectionData?.[candidate];
+    if (typeof sectionValue === 'string' && sectionValue.trim()) {
+      return {
+        value: sectionValue,
+        source: candidate,
+        legacy: legacyCandidates.includes(candidate),
+      };
+    }
+  }
+
+  return {
+    value: fallback,
+    source: '',
+    legacy: false,
+  };
+}
+
+function normalizeToken(key, rawValue, allowed, fallback) {
+  const normalized = (rawValue || '').toString().trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (allowed.includes(normalized)) return normalized;
+  warnInvalidConfig(key, rawValue, fallback);
+  return fallback;
+}
+
+function normalizeBoolean(key, rawValue, fallback) {
+  const normalized = (rawValue || '').toString().trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+  warnInvalidConfig(key, rawValue, fallback ? 'true' : 'false');
+  return fallback;
+}
+
+function normalizeColor(key, rawValue, fallback) {
+  const raw = (rawValue || '').toString().trim();
+  if (!raw) return fallback;
+  const lowered = raw.toLowerCase();
+  if (Object.keys(COLOR_MAP).includes(lowered)) return lowered;
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw;
+  if (/^rgba?\(/i.test(raw)) return raw;
+  warnInvalidConfig(key, rawValue, fallback);
+  return fallback;
+}
+
+function resolveColorToken(value) {
+  const key = (value || '').toString().toLowerCase();
+  return COLOR_MAP[key] || value;
+}
+
+function normalizeMountTarget(value, fallback) {
+  const normalized = (value || '').toString().trim();
+  return normalized || fallback;
+}
+
+function normalizeConfig(read, rows) {
+  const config = {
+    mode: normalizeToken('topbanner-mode', read.mode.value, ['static', 'ticker'], DEFAULTS.mode),
+    mount: normalizeToken('topbanner-mount', read.mount.value, ['header', 'inline'], DEFAULTS.mount),
+    mountTarget: normalizeMountTarget(read.mountTarget.value, DEFAULTS.mountTarget),
+    layout: normalizeToken('topbanner-layout', read.layout.value, ['single', 'split', 'multi'], DEFAULTS.layout),
+    ariaLive: normalizeToken('topbanner-arialive', read.ariaLive.value, ['off', 'polite'], DEFAULTS.ariaLive),
+    align: normalizeToken('topbanner-align', read.align.value, ['left', 'center', 'right'], DEFAULTS.align),
+    variant: normalizeToken('topbanner-variant', read.variant.value, ['info', 'promo', 'urgent', 'neutral'], DEFAULTS.variant),
+    maxWidth: normalizeToken('topbanner-maxwidth', read.maxWidth.value, ['none', '1200', '1400', '1600'], DEFAULTS.maxWidth),
+    textSize: normalizeToken('topbanner-textsize', read.textSize.value, ['sm', 'md', 'lg'], DEFAULTS.textSize),
+    textWeight: normalizeToken('topbanner-textweight', read.textWeight.value, ['400', '500', '600', '700'], DEFAULTS.textWeight),
+    density: normalizeToken('topbanner-density', read.density.value, ['default', 'compact'], DEFAULTS.density),
+    contentGap: normalizeToken('topbanner-contentgap', read.contentGap.value, ['none', 'xsmall', 'small', 'medium', 'large'], DEFAULTS.contentGap),
+    bgColor: normalizeColor('topbanner-bgcolor', read.bgColor.value, DEFAULTS.bgColor),
+    textColor: normalizeColor('topbanner-textcolor', read.textColor.value, DEFAULTS.textColor),
+    speed: normalizeToken('topbanner-speed', read.speed.value, ['slow', 'medium', 'fast'], DEFAULTS.speed),
+    direction: normalizeToken('topbanner-direction', read.direction.value, ['left', 'right'], DEFAULTS.direction),
+    pauseOnHover: normalizeBoolean('topbanner-pauseonhover', read.pauseOnHover.value, DEFAULTS.pauseOnHover),
+    loopGap: normalizeToken('topbanner-loopgap', read.loopGap.value, ['small', 'medium', 'large'], DEFAULTS.loopGap),
+    source: normalizeToken('topbanner-source', read.source.value, ['all', 'left', 'left-right'], DEFAULTS.source),
+    controls: normalizeBoolean('topbanner-controls', read.controls.value, DEFAULTS.controls),
+    debug: normalizeBoolean('topbanner-debug', read.debug.value, DEFAULTS.debug),
+  };
+
+  const legacyCenterLayout = (read.layout.value || '').toString().trim().toLowerCase() === 'center';
+  if (legacyCenterLayout) {
+    warnLegacyConfig('data-banner-layout=center', 'topbanner-layout + topbanner-align');
+    config.layout = 'split';
+    config.align = 'center';
+  }
+
+  if (
+    config.mode === 'static'
+    && !read.layout.source
+    && hasMeaningfulContent(rows.messageRow.center)
+  ) {
+    config.layout = 'multi';
+  }
+
+  if (config.mount === 'inline' && config.contentGap !== 'none') {
+    warnNoOpConfig('topbanner-contentgap', config.contentGap, 'content gap applies only when mount is "header".');
+  }
+
+  if (config.mode !== 'ticker' && config.controls) {
+    warnNoOpConfig('topbanner-controls', read.controls.value, 'controls apply only in ticker mode.');
+  }
+
+  return config;
 }
 
 function isSafeHref(href) {
-  const val = (href || '').toString().trim().toLowerCase();
-  if (!val) return true;
-  if (val.startsWith('#') || val.startsWith('/')) return true;
-  if (val.startsWith('http://') || val.startsWith('https://')) return true;
-  if (val.startsWith('mailto:') || val.startsWith('tel:')) return true;
+  const value = (href || '').toString().trim().toLowerCase();
+  if (!value) return true;
+
+  if (['#', '/', './', '../', '?'].some((token) => value.startsWith(token))) return true;
+  if (value.startsWith('http://') || value.startsWith('https://')) return true;
+  if (value.startsWith('mailto:') || value.startsWith('tel:')) return true;
+
   const blockedProtocols = [
     String.fromCharCode(106, 97, 118, 97, 115, 99, 114, 105, 112, 116, 58),
     'vbscript:',
     'data:',
   ];
-  if (blockedProtocols.some((protocol) => val.startsWith(protocol))) return false;
-  return true;
+
+  if (blockedProtocols.some((protocol) => value.startsWith(protocol))) return false;
+  return false;
 }
 
 function sanitizeLinks(container) {
@@ -197,9 +317,9 @@ function getRelativeLuminance(rgb) {
   return (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
 }
 
-function getContrastRatio(fg, bg) {
-  const l1 = getRelativeLuminance(fg);
-  const l2 = getRelativeLuminance(bg);
+function getContrastRatio(foreground, background) {
+  const l1 = getRelativeLuminance(foreground);
+  const l2 = getRelativeLuminance(background);
   if (l1 === null || l2 === null) return null;
   const lighter = Math.max(l1, l2);
   const darker = Math.min(l1, l2);
@@ -208,19 +328,20 @@ function getContrastRatio(fg, bg) {
 
 function warnIfLowContrast(block) {
   const styles = window.getComputedStyle(block);
-  const fg = rgbStringToArray(styles.color);
-  const bg = rgbStringToArray(styles.backgroundColor);
-  const ratio = getContrastRatio(fg, bg);
+  const foreground = rgbStringToArray(styles.color);
+  const background = rgbStringToArray(styles.backgroundColor);
+  const ratio = getContrastRatio(foreground, background);
   if (ratio !== null && ratio < 4.5) {
     // eslint-disable-next-line no-console
     console.warn(`top-banner: potential low contrast (${ratio.toFixed(2)}:1).`);
   }
 }
 
-function getTickerCellsForSource(row, source) {
-  if (source === 'left') return [row.left];
-  if (source === 'left-right') return [row.left, row.right];
-  return [row.left, row.center, row.right];
+function emitBlockEvent(block, name, detail = {}) {
+  block.dispatchEvent(new CustomEvent(`top-banner:${name}`, {
+    bubbles: true,
+    detail,
+  }));
 }
 
 function resolveContentGapValue(token) {
@@ -234,11 +355,18 @@ function resolveContentGapValue(token) {
   return map[token] || map.none;
 }
 
-function applyPortableHeaderOffsets(heightPx, contentGap = 'none') {
+function getHeaderMountedVisibleBanners() {
+  return [...document.querySelectorAll('.top-banner[data-topbanner-mount="header"]')]
+    .filter((banner) => document.contains(banner));
+}
+
+function applyPortableHeaderOffsets(totalHeight, gapToken) {
   const navWrapper = document.querySelector('header .nav-wrapper');
   const main = document.querySelector('main');
-  const safeHeight = Math.max(0, Math.round(heightPx));
-  const gapValue = resolveContentGapValue(contentGap);
+  const safeHeight = Math.max(0, Math.round(totalHeight));
+  const gapValue = resolveContentGapValue(gapToken);
+
+  document.documentElement.style.setProperty('--top-banner-height', `${safeHeight}px`);
 
   if (navWrapper) {
     navWrapper.style.top = `${safeHeight}px`;
@@ -251,16 +379,26 @@ function applyPortableHeaderOffsets(heightPx, contentGap = 'none') {
   return {
     hasNavWrapper: Boolean(navWrapper),
     hasMain: Boolean(main),
+    safeHeight,
   };
 }
 
-function mountBannerToHeader(block, selector) {
-  const sourceSection = block.closest('.section');
+function updateAllHeaderOffsets() {
+  const banners = getHeaderMountedVisibleBanners();
+  const totalHeight = banners
+    .reduce((sum, banner) => sum + Math.max(0, banner.getBoundingClientRect().height), 0);
+  const gapToken = banners[0]?.dataset?.topbannerContentgap || DEFAULTS.contentGap;
+  return applyPortableHeaderOffsets(totalHeight, gapToken);
+}
+
+function mountBannerToHeader(block, mountTarget) {
   if (block.closest('header')) return true;
 
+  const sourceSection = block.closest('.section');
   let target = null;
+
   try {
-    target = document.querySelector(selector);
+    target = document.querySelector(mountTarget);
   } catch {
     target = null;
   }
@@ -269,17 +407,13 @@ function mountBannerToHeader(block, selector) {
     || document.querySelector('header .header.block')
     || document.querySelector('header .header')
     || document.querySelector('header');
+
   if (!target) return false;
 
   const navWrapper = target.querySelector(':scope > .nav-wrapper');
-  if (navWrapper) {
-    target.insertBefore(block, navWrapper);
-  } else {
-    target.prepend(block);
-  }
+  if (navWrapper) target.insertBefore(block, navWrapper);
+  else target.prepend(block);
 
-  // If the authored source section only contained top-banner, collapse it
-  // after moving the block to avoid leftover vertical spacing in page flow.
   if (sourceSection) {
     const remainingBlocks = sourceSection.querySelectorAll('.block');
     if (!remainingBlocks.length) {
@@ -291,93 +425,62 @@ function mountBannerToHeader(block, selector) {
   return true;
 }
 
-function updateTopBannerOffset(block) {
-  if (block && !document.contains(block)) {
-    stopNavWrapperObserver();
-    if (resizeObserver) {
-      resizeObserver.disconnect();
-      resizeObserver = null;
+function ensureNavWrapperObserver(state, config) {
+  if (state.navObserver || document.querySelector('header .nav-wrapper')) return;
+  const observeTarget = document.querySelector('header .header.block')
+    || document.querySelector('header .header')
+    || document.querySelector('header')
+    || document.body;
+  if (!observeTarget) return;
+
+  state.navObserver = new MutationObserver(() => {
+    if (document.querySelector('header .nav-wrapper')) {
+      state.navObserver.disconnect();
+      state.navObserver = null;
+      updateAllHeaderOffsets();
+      debugLog(config, 'nav-wrapper observed and offsets refreshed');
     }
-    if (currentBannerBlock === block) {
-      currentBannerBlock = null;
+  });
+
+  state.navObserver.observe(observeTarget, { childList: true, subtree: true });
+}
+
+function buildTickerCellsForSource(row, source) {
+  if (source === 'left') return [row.left];
+  if (source === 'left-right') return [row.left, row.right];
+  return [row.left, row.center, row.right];
+}
+
+function createTickerTrack(messages) {
+  const track = document.createElement('div');
+  track.className = 'top-banner-ticker-track';
+
+  messages.forEach((message, index) => {
+    const item = document.createElement('span');
+    item.className = 'top-banner-ticker-item';
+    item.append(cloneCellContent(message));
+    track.append(item);
+
+    if (index < messages.length - 1) {
+      const separator = document.createElement('span');
+      separator.className = 'top-banner-ticker-separator';
+      separator.textContent = '\u2022';
+      track.append(separator);
     }
-    return;
-  }
+  });
 
-  const contentGap = block?.dataset?.bannerContentGap || DEFAULTS.bannerContentGap;
-  const retries = Number(block?.dataset?.offsetRetry || '0');
-
-  const scheduleRetry = () => {
-    if (!block || retries >= 20) return;
-    block.dataset.offsetRetry = String(retries + 1);
-    window.requestAnimationFrame(() => updateTopBannerOffset(block));
-  };
-
-  if (!block || block.dataset.dismissed === 'true') {
-    document.documentElement.style.setProperty('--top-banner-height', '0px');
-    const { hasNavWrapper } = applyPortableHeaderOffsets(0, contentGap);
-    if (!hasNavWrapper) {
-      ensureNavWrapperObserver(block);
-      scheduleRetry();
-      debugLog(block, 'waiting for nav wrapper (dismissed)', { retries });
-    } else {
-      stopNavWrapperObserver();
-    }
-    return;
-  }
-
-  const { height } = block.getBoundingClientRect();
-  const safeHeight = Math.max(0, Math.round(height));
-
-  document.documentElement.style.setProperty('--top-banner-height', '0px');
-  const { hasNavWrapper } = applyPortableHeaderOffsets(safeHeight, contentGap);
-  if (!hasNavWrapper) {
-    ensureNavWrapperObserver(block);
-    scheduleRetry();
-    debugLog(block, 'waiting for nav wrapper (header mount)', {
-      safeHeight,
-      contentGap,
-      retries,
-    });
-  } else {
-    stopNavWrapperObserver();
-    block.dataset.offsetRetry = '0';
-    debugLog(block, 'applied portable header offsets', { safeHeight, contentGap });
-  }
+  return track;
 }
 
-function applyDismissState(block, dismissScope, dismissKey) {
-  if (dismissScope === 'none') return false;
-
-  const storage = dismissScope === 'local' ? window.localStorage : window.sessionStorage;
-  try {
-    return storage.getItem(dismissKey) === '1';
-  } catch {
-    return false;
-  }
+function shouldRenderTickerStatic() {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return prefersReducedMotion;
 }
 
-function persistDismissState(dismissScope, dismissKey) {
-  if (dismissScope === 'none') return;
-
-  const storage = dismissScope === 'local' ? window.localStorage : window.sessionStorage;
-  try {
-    storage.setItem(dismissKey, '1');
-  } catch {
-    // storage may be unavailable in private mode; fail safely
-  }
-}
-
-function emitBlockEvent(block, name, detail = {}) {
-  block.dispatchEvent(new CustomEvent(`top-banner:${name}`, {
-    bubbles: true,
-    detail,
-  }));
-}
-
-function buildTicker(leftLane, rows, config, prefersReducedMotion) {
-  const messages = rows
-    .flatMap((row) => getTickerCellsForSource(row, config.bannerTickerSource))
+function buildTicker(leftLane, rows, config, signal) {
+  const sourceRows = rows.filter((row) => row);
+  const messages = sourceRows
+    .flatMap((row) => buildTickerCellsForSource(row, config.source))
     .filter(hasMeaningfulContent);
 
   if (!messages.length) {
@@ -385,204 +488,314 @@ function buildTicker(leftLane, rows, config, prefersReducedMotion) {
     return { isAnimated: false, ticker: null };
   }
 
-  const staticFallback = () => {
+  if (shouldRenderTickerStatic()) {
     leftLane.append(cloneCellContent(messages[0]));
-  };
-
-  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
-  const forceStaticOnMobile = isMobileViewport && config.bannerTickerMobileMode === 'static';
-
-  if (prefersReducedMotion || forceStaticOnMobile) {
-    staticFallback();
     return { isAnimated: false, ticker: null };
   }
 
   const ticker = document.createElement('div');
   ticker.className = 'top-banner-ticker';
-  ticker.dataset.direction = config.bannerTickerDirection;
-  ticker.dataset.speed = config.bannerTickerSpeed;
-  ticker.dataset.pause = config.bannerTickerPauseOnHover ? 'true' : 'false';
-  ticker.dataset.loopGap = config.bannerTickerLoopGap;
-  ticker.dataset.source = config.bannerTickerSource;
+  ticker.dataset.topbannerDirection = config.direction;
+  ticker.dataset.topbannerSpeed = config.speed;
+  ticker.dataset.topbannerPauseonhover = config.pauseOnHover ? 'true' : 'false';
+  ticker.dataset.topbannerLoopgap = config.loopGap;
+  ticker.dataset.topbannerSource = config.source;
 
-  const buildTrack = () => {
-    const frag = document.createDocumentFragment();
-    messages.forEach((message, index) => {
-      const item = document.createElement('span');
-      item.className = 'top-banner-ticker-item';
-      item.append(cloneCellContent(message));
-      frag.append(item);
-
-      if (index < messages.length - 1) {
-        const sep = document.createElement('span');
-        sep.className = 'top-banner-ticker-separator';
-        sep.textContent = '\u2022';
-        frag.append(sep);
-      }
-    });
-    return frag;
-  };
-
-  const track = document.createElement('div');
-  track.className = 'top-banner-ticker-track';
-  track.append(buildTrack());
-
+  const track = createTickerTrack(messages);
   ticker.append(track);
   leftLane.append(ticker);
-  return { isAnimated: true, ticker };
+
+  let pausedByToggle = false;
+  let pausedByFocus = false;
+  let pausedByHover = false;
+
+  const applyPlaybackState = () => {
+    if (pausedByToggle || pausedByFocus || pausedByHover) {
+      track.style.animationPlayState = 'paused';
+    } else {
+      track.style.removeProperty('animation-play-state');
+    }
+  };
+
+  const syncLayout = () => {
+    if (!ticker.isConnected) return;
+
+    ticker.dataset.topbannerStatic = 'false';
+    const tickerWidth = Math.ceil(ticker.clientWidth);
+    const trackWidth = Math.ceil(track.scrollWidth);
+
+    if (tickerWidth > 0 && trackWidth > 0) {
+      if (config.direction === 'right') {
+        track.style.setProperty('--top-banner-track-start', `-${trackWidth}px`);
+        track.style.setProperty('--top-banner-track-end', `${tickerWidth}px`);
+      } else {
+        track.style.setProperty('--top-banner-track-start', `${tickerWidth}px`);
+        track.style.setProperty('--top-banner-track-end', `-${trackWidth}px`);
+      }
+    }
+
+    applyPlaybackState();
+  };
+
+  ticker.addEventListener('focusin', () => {
+    pausedByFocus = true;
+    applyPlaybackState();
+  }, { signal });
+
+  ticker.addEventListener('focusout', (event) => {
+    if (!ticker.contains(event.relatedTarget)) {
+      pausedByFocus = false;
+      applyPlaybackState();
+    }
+  }, { signal });
+
+  if (config.pauseOnHover) {
+    // Use pointer events instead of pure CSS :hover so initial cursor position
+    // does not freeze ticker on first paint.
+    ticker.addEventListener('pointerenter', (event) => {
+      if (event.pointerType === 'touch') return;
+      pausedByHover = true;
+      applyPlaybackState();
+    }, { signal });
+
+    ticker.addEventListener('pointerleave', (event) => {
+      if (event.pointerType === 'touch') return;
+      pausedByHover = false;
+      applyPlaybackState();
+    }, { signal });
+  }
+
+  return {
+    isAnimated: true,
+    ticker,
+    setTogglePaused: (isPaused) => {
+      pausedByToggle = isPaused;
+      applyPlaybackState();
+    },
+    syncLayout,
+  };
+}
+
+function appendLaneFragments(lane, cells) {
+  const visibleCells = cells.filter(hasMeaningfulContent);
+  visibleCells.forEach((cell, index) => {
+    const fragment = document.createElement('span');
+    fragment.className = 'top-banner-fragment';
+    fragment.append(cloneCellContent(cell));
+    lane.append(fragment);
+
+    if (index < visibleCells.length - 1) {
+      const separator = document.createElement('span');
+      separator.className = 'top-banner-fragment-separator';
+      separator.textContent = '\u2022';
+      lane.append(separator);
+    }
+  });
+}
+
+function runAutomatedChecks(block, config) {
+  const checks = [];
+
+  const linkIssues = [...block.querySelectorAll('a[href]')].filter((link) => !isSafeHref(link.getAttribute('href')));
+  checks.push({
+    check: 'url-sanitization',
+    pass: linkIssues.length === 0,
+    detail: linkIssues.length ? `${linkIssues.length} unsafe link(s)` : 'all links safe',
+  });
+
+  const metadataPass = ['static', 'ticker'].includes(config.mode)
+    && ['header', 'inline'].includes(config.mount)
+    && ['single', 'split', 'multi'].includes(config.layout)
+    && ['left', 'center', 'right'].includes(config.align);
+  checks.push({
+    check: 'metadata-normalization',
+    pass: metadataPass,
+    detail: metadataPass ? 'normalized values in allowed sets' : 'one or more values outside allowed sets',
+  });
+
+  const currentWidth = window.innerWidth;
+  const nearestSweepWidth = REQUIRED_WIDTHS.reduce((nearest, width) => (
+    Math.abs(width - currentWidth) < Math.abs(nearest - currentWidth) ? width : nearest
+  ), REQUIRED_WIDTHS[0]);
+
+  const navWrapper = document.querySelector('header .nav-wrapper');
+  const bannerHeight = Math.round(block.getBoundingClientRect().height);
+  const navTop = navWrapper
+    ? Math.round(Number.parseFloat(window.getComputedStyle(navWrapper).top) || 0)
+    : 0;
+  const offsetPass = config.mount !== 'header' || !navWrapper || Math.abs(navTop - bannerHeight) <= 2;
+
+  checks.push({
+    check: 'offset-behavior',
+    pass: offsetPass,
+    detail: config.mount !== 'header'
+      ? 'inline mount (offset not required)'
+      : `viewport ${currentWidth}px (nearest required width ${nearestSweepWidth}px), navTop=${navTop}, banner=${bannerHeight}`,
+  });
+
+  block.dispatchEvent(new CustomEvent('top-banner:checks', {
+    bubbles: true,
+    detail: {
+      checks,
+      requiredSweep: REQUIRED_WIDTHS,
+    },
+  }));
+
+  if (checks.some((item) => !item.pass)) {
+    // eslint-disable-next-line no-console
+    console.warn('top-banner: automated checks found issues.', checks);
+  } else {
+    // eslint-disable-next-line no-console
+    console.info('top-banner: automated checks passed.', checks);
+  }
+}
+
+function cleanupInstance(block) {
+  const state = INSTANCE_STATE.get(block);
+  if (!state) return;
+
+  state.controller.abort();
+
+  if (state.resizeObserver) {
+    state.resizeObserver.disconnect();
+    state.resizeObserver = null;
+  }
+
+  if (state.disconnectObserver) {
+    state.disconnectObserver.disconnect();
+    state.disconnectObserver = null;
+  }
+
+  if (state.navObserver) {
+    state.navObserver.disconnect();
+    state.navObserver = null;
+  }
+
+  if (state.resizeTimer) {
+    window.clearTimeout(state.resizeTimer);
+    state.resizeTimer = 0;
+  }
+
+  INSTANCE_STATE.delete(block);
+  updateAllHeaderOffsets();
+}
+
+function createInstanceState(block) {
+  const controller = new AbortController();
+  const state = {
+    block,
+    controller,
+    signal: controller.signal,
+    resizeObserver: null,
+    disconnectObserver: null,
+    navObserver: null,
+    resizeTimer: 0,
+  };
+  INSTANCE_STATE.set(block, state);
+  return state;
+}
+
+function applyConfigDataset(block, config) {
+  block.dataset.topbannerMode = config.mode;
+  block.dataset.topbannerMount = config.mount;
+  block.dataset.topbannerMounttarget = config.mountTarget;
+  block.dataset.topbannerLayout = config.layout;
+  block.dataset.topbannerArialive = config.ariaLive;
+  block.dataset.topbannerAlign = config.align;
+  block.dataset.topbannerVariant = config.variant;
+  block.dataset.topbannerMaxwidth = config.maxWidth;
+  block.dataset.topbannerTextsize = config.textSize;
+  block.dataset.topbannerTextweight = config.textWeight;
+  block.dataset.topbannerDensity = config.density;
+  block.dataset.topbannerContentgap = config.contentGap;
+  block.dataset.topbannerBgcolor = config.bgColor;
+  block.dataset.topbannerTextcolor = config.textColor;
+  block.dataset.topbannerSpeed = config.speed;
+  block.dataset.topbannerDirection = config.direction;
+  block.dataset.topbannerPauseonhover = config.pauseOnHover ? 'true' : 'false';
+  block.dataset.topbannerLoopgap = config.loopGap;
+  block.dataset.topbannerSource = config.source;
+  block.dataset.topbannerControls = config.controls ? 'true' : 'false';
+  block.dataset.topbannerDebug = config.debug ? 'true' : 'false';
+}
+
+function buildConfig(block, rowGroups) {
+  const sectionData = block.closest('.section')?.dataset || {};
+
+  const read = {
+    mode: readConfigValue(block, sectionData, 'topbannerMode', DEFAULTS.mode, ['dataBannerMode', 'dataDataBannerMode']),
+    mount: readConfigValue(block, sectionData, 'topbannerMount', DEFAULTS.mount, ['dataBannerMount', 'dataDataBannerMount']),
+    mountTarget: readConfigValue(block, sectionData, 'topbannerMounttarget', DEFAULTS.mountTarget, ['dataBannerMountTarget', 'dataDataBannerMountTarget']),
+    layout: readConfigValue(block, sectionData, 'topbannerLayout', DEFAULTS.layout, ['dataBannerLayout', 'dataDataBannerLayout']),
+    ariaLive: readConfigValue(block, sectionData, 'topbannerArialive', DEFAULTS.ariaLive, ['dataBannerAriaLive', 'dataDataBannerAriaLive']),
+    align: readConfigValue(block, sectionData, 'topbannerAlign', DEFAULTS.align, ['dataBannerAlign', 'dataDataBannerAlign']),
+    variant: readConfigValue(block, sectionData, 'topbannerVariant', DEFAULTS.variant, ['dataBannerVariant', 'dataDataBannerVariant']),
+    maxWidth: readConfigValue(block, sectionData, 'topbannerMaxwidth', DEFAULTS.maxWidth, ['dataBannerMaxWidth', 'dataDataBannerMaxWidth']),
+    textSize: readConfigValue(block, sectionData, 'topbannerTextsize', DEFAULTS.textSize, ['dataBannerTextSize', 'dataDataBannerTextSize']),
+    textWeight: readConfigValue(block, sectionData, 'topbannerTextweight', DEFAULTS.textWeight, ['dataBannerTextWeight', 'dataDataBannerTextWeight']),
+    density: readConfigValue(block, sectionData, 'topbannerDensity', DEFAULTS.density, ['dataBannerDensity', 'dataDataBannerDensity']),
+    contentGap: readConfigValue(block, sectionData, 'topbannerContentgap', DEFAULTS.contentGap, ['dataBannerContentGap', 'dataDataBannerContentGap']),
+    bgColor: readConfigValue(block, sectionData, 'topbannerBgcolor', DEFAULTS.bgColor, ['dataBannerBgColor', 'dataDataBannerBgColor', 'dataBannerBgColour', 'dataDataBannerBgColour']),
+    textColor: readConfigValue(block, sectionData, 'topbannerTextcolor', DEFAULTS.textColor, ['dataBannerTextColor', 'dataDataBannerTextColor', 'dataBannerTextColour', 'dataDataBannerTextColour']),
+    speed: readConfigValue(block, sectionData, 'topbannerSpeed', DEFAULTS.speed, ['dataTickerSpeed', 'dataDataTickerSpeed']),
+    direction: readConfigValue(block, sectionData, 'topbannerDirection', DEFAULTS.direction, ['dataTickerDirection', 'dataDataTickerDirection']),
+    pauseOnHover: readConfigValue(block, sectionData, 'topbannerPauseonhover', '', ['dataTickerPauseOnHover', 'dataDataTickerPauseOnHover']),
+    loopGap: readConfigValue(block, sectionData, 'topbannerLoopgap', DEFAULTS.loopGap, ['dataTickerLoopGap', 'dataDataTickerLoopGap']),
+    source: readConfigValue(block, sectionData, 'topbannerSource', DEFAULTS.source, ['dataTickerSource', 'dataDataTickerSource']),
+    controls: readConfigValue(block, sectionData, 'topbannerControls', '', ['dataTickerControls', 'dataDataTickerControls']),
+    debug: readConfigValue(block, sectionData, 'topbannerDebug', '', ['dataBannerDebug', 'dataDataBannerDebug']),
+  };
+
+  Object.entries(read).forEach(([key, readResult]) => {
+    if (readResult.legacy) {
+      warnLegacyConfig(readResult.source, `topbanner-${key.toLowerCase()}`);
+    }
+  });
+
+  return normalizeConfig(read, rowGroups);
 }
 
 export default function decorate(block) {
+  cleanupInstance(block);
+
   const rows = parseRows(block);
   if (!rows.length) return;
 
-  const section = block.closest('.section');
-  const sectionData = section?.dataset || {};
-  const hasExplicitLayout = Boolean(
-    block.dataset.bannerLayout
-    || sectionData.dataBannerLayout
-    || sectionData.dataDataBannerLayout,
-  );
+  const rowGroups = resolveRowGroups(rows);
+  const config = buildConfig(block, rowGroups);
 
-  const raw = {
-    bannerMode: getConfigValue(block.dataset.bannerMode, sectionData, ['dataBannerMode', 'dataDataBannerMode'], DEFAULTS.bannerMode),
-    bannerMount: getConfigValue(block.dataset.bannerMount, sectionData, ['dataBannerMount', 'dataDataBannerMount'], DEFAULTS.bannerMount),
-    bannerMountTarget: getConfigValue(block.dataset.bannerMountTarget, sectionData, ['dataBannerMountTarget', 'dataDataBannerMountTarget'], DEFAULTS.bannerMountTarget),
-    bannerLayout: getConfigValue(block.dataset.bannerLayout, sectionData, ['dataBannerLayout', 'dataDataBannerLayout'], DEFAULTS.bannerLayout),
-    bannerAriaLive: getConfigValue(block.dataset.bannerAriaLive, sectionData, ['dataBannerAriaLive', 'dataDataBannerAriaLive'], DEFAULTS.bannerAriaLive),
-    bannerAlign: getConfigValue(block.dataset.bannerAlign, sectionData, ['dataBannerAlign', 'dataDataBannerAlign'], DEFAULTS.bannerAlign),
-    bannerVariant: getConfigValue(block.dataset.bannerVariant, sectionData, ['dataBannerVariant', 'dataDataBannerVariant'], DEFAULTS.bannerVariant),
-    bannerDismissible: getConfigValue(block.dataset.bannerDismissible, sectionData, ['dataBannerDismissible', 'dataDataBannerDismissible'], ''),
-    bannerDismissScope: getConfigValue(block.dataset.bannerDismissScope, sectionData, ['dataBannerDismissScope', 'dataDataBannerDismissScope'], DEFAULTS.bannerDismissScope),
-    bannerMaxWidth: getConfigValue(block.dataset.bannerMaxWidth, sectionData, ['dataBannerMaxWidth', 'dataDataBannerMaxWidth'], DEFAULTS.bannerMaxWidth),
-    bannerTextSize: getConfigValue(block.dataset.bannerTextSize, sectionData, ['dataBannerTextSize', 'dataDataBannerTextSize'], DEFAULTS.bannerTextSize),
-    bannerTextWeight: getConfigValue(block.dataset.bannerTextWeight, sectionData, ['dataBannerTextWeight', 'dataDataBannerTextWeight'], DEFAULTS.bannerTextWeight),
-    bannerDensity: getConfigValue(block.dataset.bannerDensity, sectionData, ['dataBannerDensity', 'dataDataBannerDensity'], DEFAULTS.bannerDensity),
-    bannerContentGap: getConfigValue(block.dataset.bannerContentGap, sectionData, ['dataBannerContentGap', 'dataDataBannerContentGap'], DEFAULTS.bannerContentGap),
-    bannerBgColor: getConfigValue(
-      block.dataset.bannerBgColor,
-      sectionData,
-      ['dataBannerBgColor', 'dataDataBannerBgColor', 'dataBannerBgColour', 'dataDataBannerBgColour'],
-      DEFAULTS.bannerBgColor,
-    ),
-    bannerTextColor: getConfigValue(
-      block.dataset.bannerTextColor,
-      sectionData,
-      ['dataBannerTextColor', 'dataDataBannerTextColor', 'dataBannerTextColour', 'dataDataBannerTextColour'],
-      DEFAULTS.bannerTextColor,
-    ),
-    bannerTickerSpeed: getConfigValue(block.dataset.tickerSpeed, sectionData, ['dataTickerSpeed', 'dataDataTickerSpeed'], DEFAULTS.tickerSpeed),
-    bannerTickerDirection: getConfigValue(block.dataset.tickerDirection, sectionData, ['dataTickerDirection', 'dataDataTickerDirection'], DEFAULTS.tickerDirection),
-    bannerTickerPauseOnHover: getConfigValue(block.dataset.tickerPauseOnHover, sectionData, ['dataTickerPauseOnHover', 'dataDataTickerPauseOnHover'], ''),
-    bannerTickerLoopGap: getConfigValue(block.dataset.tickerLoopGap, sectionData, ['dataTickerLoopGap', 'dataDataTickerLoopGap'], DEFAULTS.tickerLoopGap),
-    bannerTickerSource: getConfigValue(block.dataset.tickerSource, sectionData, ['dataTickerSource', 'dataDataTickerSource'], DEFAULTS.tickerSource),
-    bannerTickerControls: getConfigValue(block.dataset.tickerControls, sectionData, ['dataTickerControls', 'dataDataTickerControls'], ''),
-    bannerTickerMobileMode: getConfigValue(block.dataset.tickerMobileMode, sectionData, ['dataTickerMobileMode', 'dataDataTickerMobileMode'], DEFAULTS.tickerMobileMode),
-    bannerDebug: getConfigValue(block.dataset.bannerDebug, sectionData, ['dataBannerDebug', 'dataDataBannerDebug'], ''),
-    bannerRegion: getConfigValue(block.dataset.bannerRegion, sectionData, ['dataBannerRegion', 'dataDataBannerRegion'], DEFAULTS.bannerRegion),
-    bannerAudience: getConfigValue(block.dataset.bannerAudience, sectionData, ['dataBannerAudience', 'dataDataBannerAudience'], DEFAULTS.bannerAudience),
-    bannerAnalyticsId: getConfigValue(block.dataset.bannerAnalyticsId, sectionData, ['dataBannerAnalyticsId', 'dataDataBannerAnalyticsId'], DEFAULTS.bannerAnalyticsId),
-  };
+  const state = createInstanceState(block);
 
-  const config = {
-    bannerMode: normalizeToken(raw.bannerMode, ['static', 'ticker'], DEFAULTS.bannerMode),
-    bannerMount: DEFAULTS.bannerMount,
-    bannerMountTarget: normalizeMountTarget(raw.bannerMountTarget, DEFAULTS.bannerMountTarget),
-    bannerLayout: normalizeToken(raw.bannerLayout, ['single', 'split', 'multi'], DEFAULTS.bannerLayout),
-    bannerAriaLive: normalizeToken(raw.bannerAriaLive, ['off', 'polite'], DEFAULTS.bannerAriaLive),
-    bannerAlign: normalizeToken(raw.bannerAlign, ['left', 'center', 'right'], DEFAULTS.bannerAlign),
-    bannerVariant: normalizeToken(raw.bannerVariant, ['info', 'promo', 'urgent', 'neutral'], DEFAULTS.bannerVariant),
-    bannerDismissible: normalizeBoolean(raw.bannerDismissible, DEFAULTS.bannerDismissible),
-    bannerDismissScope: normalizeToken(raw.bannerDismissScope, ['session', 'local', 'none'], DEFAULTS.bannerDismissScope),
-    bannerMaxWidth: normalizeToken(raw.bannerMaxWidth, ['none', '1200', '1400', '1600'], DEFAULTS.bannerMaxWidth),
-    bannerTextSize: normalizeToken(raw.bannerTextSize, ['sm', 'md', 'lg'], DEFAULTS.bannerTextSize),
-    bannerTextWeight: normalizeToken(raw.bannerTextWeight, ['400', '500', '600', '700'], DEFAULTS.bannerTextWeight),
-    bannerDensity: normalizeToken(raw.bannerDensity, ['default', 'compact'], DEFAULTS.bannerDensity),
-    bannerContentGap: normalizeToken(raw.bannerContentGap, ['none', 'xsmall', 'small', 'medium', 'large'], DEFAULTS.bannerContentGap),
-    bannerBgColor: normalizeColor(raw.bannerBgColor, DEFAULTS.bannerBgColor),
-    bannerTextColor: normalizeColor(raw.bannerTextColor, DEFAULTS.bannerTextColor),
-    bannerTickerSpeed: normalizeToken(raw.bannerTickerSpeed, ['slow', 'medium', 'fast'], DEFAULTS.tickerSpeed),
-    bannerTickerDirection: normalizeToken(raw.bannerTickerDirection, ['left', 'right'], DEFAULTS.tickerDirection),
-    bannerTickerPauseOnHover: normalizeBoolean(
-      raw.bannerTickerPauseOnHover,
-      DEFAULTS.tickerPauseOnHover,
-    ),
-    bannerTickerLoopGap: normalizeToken(raw.bannerTickerLoopGap, ['small', 'medium', 'large'], DEFAULTS.tickerLoopGap),
-    bannerTickerSource: normalizeToken(raw.bannerTickerSource, ['all', 'left', 'left-right'], DEFAULTS.tickerSource),
-    bannerTickerControls: normalizeBoolean(raw.bannerTickerControls, DEFAULTS.tickerControls),
-    bannerTickerMobileMode: normalizeToken(raw.bannerTickerMobileMode, ['static', 'ticker'], DEFAULTS.tickerMobileMode),
-    bannerDebug: normalizeBoolean(raw.bannerDebug, DEFAULTS.bannerDebug),
-    bannerRegion: normalizeToken(raw.bannerRegion, ['global', 'emea', 'na', 'apac'], DEFAULTS.bannerRegion),
-    bannerAudience: normalizeToken(raw.bannerAudience, ['all', 'guest', 'signed-in', 'vip'], DEFAULTS.bannerAudience),
-    bannerAnalyticsId: (raw.bannerAnalyticsId || '').toString().trim(),
-  };
+  state.signal.addEventListener('abort', () => {
+    updateAllHeaderOffsets();
+  }, { once: true });
 
-  // Backward-compatible alias: data-banner-layout=center
-  // maps to split layout with centered message lane.
-  if ((raw.bannerLayout || '').toString().trim().toLowerCase() === 'center') {
-    config.bannerLayout = 'split';
-    config.bannerAlign = 'center';
-  }
-
-  // If authors did not explicitly set layout and provided center content,
-  // show all authored static columns by default.
-  const [firstRow] = rows;
-  if (
-    config.bannerMode === 'static'
-    && !hasExplicitLayout
-    && hasMeaningfulContent(firstRow.center)
-  ) {
-    config.bannerLayout = 'multi';
-  }
-
-  Object.entries(config).forEach(([key, value]) => {
-    block.dataset[key] = value.toString();
+  const disconnectRoot = block.parentElement || block.closest('main') || document.body;
+  state.disconnectObserver = new MutationObserver(() => {
+    if (!block.isConnected) {
+      cleanupInstance(block);
+    }
+  });
+  state.disconnectObserver.observe(disconnectRoot, {
+    childList: true,
+    subtree: disconnectRoot === document.body,
   });
 
-  const didMount = mountBannerToHeader(block, config.bannerMountTarget);
-  if (!didMount) {
-    // eslint-disable-next-line no-console
-    console.warn(`top-banner: header mount target not found ("${config.bannerMountTarget}").`);
-    debugLog(block, 'header mount target not found', { target: config.bannerMountTarget });
+  applyConfigDataset(block, config);
+
+  if (config.mount === 'header') {
+    const mounted = mountBannerToHeader(block, config.mountTarget);
+    if (!mounted) {
+      // eslint-disable-next-line no-console
+      console.warn(`top-banner: header mount target not found ("${config.mountTarget}").`);
+    }
   }
 
-  const effectiveLayout = config.bannerMode === 'ticker' ? 'single' : config.bannerLayout;
-  block.dataset.bannerEffectiveLayout = effectiveLayout;
+  block.style.setProperty('--top-banner-bg', resolveColorToken(config.bgColor));
+  block.style.setProperty('--top-banner-text', resolveColorToken(config.textColor));
 
-  const bgColorToken = resolveColorToken(config.bannerBgColor, {
-    transparent: 'transparent',
-    light: 'var(--color-neutral-100)',
-    neutral: 'var(--color-neutral-200)',
-    dark: 'var(--color-neutral-900)',
-    brand: 'var(--color-brand-500)',
-    accent: 'var(--color-informational-500)',
-    white: 'var(--color-neutral-50)',
-    black: '#000',
-  });
-
-  const textColorToken = resolveColorToken(config.bannerTextColor, {
-    transparent: 'transparent',
-    light: 'var(--color-neutral-100)',
-    neutral: 'var(--color-neutral-700)',
-    dark: 'var(--color-neutral-900)',
-    brand: 'var(--color-brand-500)',
-    accent: 'var(--color-informational-500)',
-    white: 'var(--color-neutral-50)',
-    black: '#000',
-  });
-
-  block.style.setProperty('--top-banner-bg', bgColorToken);
-  block.style.setProperty('--top-banner-text', textColorToken);
-
-  const dismissKey = `top-banner:${config.bannerAnalyticsId || window.location.pathname}`;
-  if (applyDismissState(block, config.bannerDismissScope, dismissKey)) {
-    block.dataset.dismissed = 'true';
-    block.textContent = '';
-    updateTopBannerOffset(block);
-    return;
-  }
-
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const effectiveLayout = config.mode === 'ticker' ? 'single' : config.layout;
+  block.dataset.topbannerEffectivelayout = effectiveLayout;
 
   const inner = document.createElement('div');
   inner.className = 'top-banner-inner';
@@ -590,122 +803,147 @@ export default function decorate(block) {
   const leftLane = document.createElement('div');
   leftLane.className = 'top-banner-lane top-banner-lane-left';
 
-  let tickerRuntime = { isAnimated: false, ticker: null };
-  if (config.bannerMode === 'ticker') {
-    tickerRuntime = buildTicker(leftLane, rows, config, prefersReducedMotion);
-    debugLog(block, 'ticker resolved', {
-      isAnimated: tickerRuntime.isAnimated,
-      source: config.bannerTickerSource,
-      direction: config.bannerTickerDirection,
-      mobileMode: config.bannerTickerMobileMode,
-      reducedMotion: prefersReducedMotion,
-    });
+  let tickerRuntime = {
+    isAnimated: false,
+    ticker: null,
+    setTogglePaused: () => {},
+    syncLayout: () => {},
+  };
+
+  if (config.mode === 'ticker') {
+    tickerRuntime = buildTicker(leftLane, rowGroups.tickerRows, config, state.signal);
   } else {
-    leftLane.append(cloneCellContent(firstRow.left));
+    appendLaneFragments(leftLane, [rowGroups.messageRow.left]);
   }
 
   inner.append(leftLane);
 
-  if (
-    config.bannerMode !== 'ticker'
-    && effectiveLayout === 'multi'
-    && hasMeaningfulContent(firstRow.center)
-  ) {
-    const centerLane = document.createElement('div');
-    centerLane.className = 'top-banner-lane top-banner-lane-center';
-    centerLane.append(cloneCellContent(firstRow.center));
-    inner.append(centerLane);
+  if (config.mode !== 'ticker' && effectiveLayout === 'multi') {
+    const centerCells = [
+      rowGroups.messageRow.center,
+      ...rowGroups.utilityRows.map((row) => row.center),
+    ];
+
+    if (centerCells.some(hasMeaningfulContent)) {
+      const centerLane = document.createElement('div');
+      centerLane.className = 'top-banner-lane top-banner-lane-center';
+      appendLaneFragments(centerLane, centerCells);
+      inner.append(centerLane);
+    }
   }
 
-  if (
-    config.bannerMode !== 'ticker'
-    && ['split', 'multi'].includes(effectiveLayout)
-    && hasMeaningfulContent(firstRow.right)
-  ) {
-    const rightLane = document.createElement('div');
-    rightLane.className = 'top-banner-lane top-banner-lane-right';
-    rightLane.append(cloneCellContent(firstRow.right));
-    inner.append(rightLane);
+  if (config.mode !== 'ticker' && ['split', 'multi'].includes(effectiveLayout)) {
+    const rightCells = [
+      rowGroups.messageRow.right,
+      ...rowGroups.utilityRows.map((row) => row.right),
+    ];
+
+    if (rightCells.some(hasMeaningfulContent)) {
+      const rightLane = document.createElement('div');
+      rightLane.className = 'top-banner-lane top-banner-lane-right';
+      appendLaneFragments(rightLane, rightCells);
+      inner.append(rightLane);
+    }
   }
 
-  if (config.bannerMode === 'ticker' && config.bannerTickerControls && tickerRuntime.ticker) {
-    const tickerToggle = document.createElement('button');
-    tickerToggle.type = 'button';
-    tickerToggle.className = 'top-banner-ticker-toggle';
-    tickerToggle.dataset.state = 'playing';
-    tickerToggle.setAttribute('aria-pressed', 'false');
-    tickerToggle.setAttribute('aria-label', 'Pause announcement ticker');
-    tickerToggle.textContent = 'Pause';
+  if (config.mode === 'ticker' && config.controls && tickerRuntime.ticker) {
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'top-banner-ticker-toggle';
+    toggle.dataset.state = 'playing';
+    toggle.setAttribute('aria-pressed', 'false');
+    toggle.setAttribute('aria-label', 'Pause announcement ticker');
+    toggle.textContent = 'Pause';
 
-    tickerToggle.addEventListener('click', () => {
-      const track = tickerRuntime.ticker.querySelector('.top-banner-ticker-track');
-      if (!track) return;
-      const isPlaying = tickerToggle.dataset.state === 'playing';
-      tickerToggle.dataset.state = isPlaying ? 'paused' : 'playing';
-      tickerToggle.setAttribute('aria-pressed', isPlaying ? 'true' : 'false');
-      tickerToggle.setAttribute('aria-label', isPlaying ? 'Play announcement ticker' : 'Pause announcement ticker');
-      tickerToggle.textContent = isPlaying ? 'Play' : 'Pause';
-      track.style.animationPlayState = isPlaying ? 'paused' : 'running';
-    });
+    toggle.addEventListener('click', () => {
+      const currentlyPlaying = toggle.dataset.state === 'playing';
+      const nextPaused = currentlyPlaying;
+      toggle.dataset.state = currentlyPlaying ? 'paused' : 'playing';
+      toggle.setAttribute('aria-pressed', currentlyPlaying ? 'true' : 'false');
+      toggle.setAttribute('aria-label', currentlyPlaying ? 'Play announcement ticker' : 'Pause announcement ticker');
+      toggle.textContent = currentlyPlaying ? 'Play' : 'Pause';
+      tickerRuntime.setTogglePaused(nextPaused);
+    }, { signal: state.signal });
 
-    inner.append(tickerToggle);
-  }
-
-  if (config.bannerDismissible) {
-    const dismissButton = document.createElement('button');
-    dismissButton.type = 'button';
-    dismissButton.className = 'top-banner-dismiss';
-    dismissButton.setAttribute('aria-label', 'Dismiss announcement');
-    dismissButton.textContent = '\u00d7';
-    dismissButton.addEventListener('click', () => {
-      persistDismissState(config.bannerDismissScope, dismissKey);
-      block.dataset.dismissed = 'true';
-      block.textContent = '';
-      updateTopBannerOffset(block);
-      emitBlockEvent(block, 'dismissed', {
-        analyticsId: config.bannerAnalyticsId,
-        scope: config.bannerDismissScope,
-      });
-    });
-    inner.append(dismissButton);
+    inner.append(toggle);
   }
 
   block.replaceChildren(inner);
+
   sanitizeLinks(block);
   block.setAttribute('role', 'region');
   block.setAttribute('aria-label', 'Site announcement');
-  block.setAttribute('aria-live', config.bannerAriaLive);
+  block.setAttribute('aria-live', config.ariaLive);
 
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-
-  resizeObserver = new ResizeObserver(() => updateTopBannerOffset(block));
-  resizeObserver.observe(block);
-  currentBannerBlock = block;
-  if (!resizeBound) {
-    window.addEventListener('resize', onWindowResize, { passive: true });
-    resizeBound = true;
-  }
-
-  updateTopBannerOffset(block);
   warnIfLowContrast(block);
 
+  if (tickerRuntime.isAnimated) {
+    requestAnimationFrame(() => {
+      tickerRuntime.syncLayout();
+    });
+  }
+
+  const runResizeSync = () => {
+    if (config.mount === 'header') {
+      updateAllHeaderOffsets();
+      ensureNavWrapperObserver(state, config);
+    } else {
+      updateAllHeaderOffsets();
+    }
+
+    if (tickerRuntime.isAnimated) {
+      tickerRuntime.syncLayout();
+    }
+  };
+
+  const handleResize = () => {
+    if (state.resizeTimer) window.clearTimeout(state.resizeTimer);
+    state.resizeTimer = window.setTimeout(() => {
+      state.resizeTimer = 0;
+      runResizeSync();
+    }, 150);
+  };
+
+  if (config.mount === 'header' || tickerRuntime.isAnimated) {
+    window.addEventListener('resize', handleResize, { signal: state.signal, passive: true });
+  }
+
+  if (config.mount === 'header') {
+    state.resizeObserver = new ResizeObserver(() => {
+      updateAllHeaderOffsets();
+    });
+    state.resizeObserver.observe(block);
+
+    updateAllHeaderOffsets();
+    ensureNavWrapperObserver(state, config);
+  } else {
+    updateAllHeaderOffsets();
+  }
+
   emitBlockEvent(block, 'shown', {
-    mode: config.bannerMode,
-    mount: config.bannerMount,
-    source: config.bannerTickerSource,
-    direction: config.bannerTickerDirection,
+    mode: config.mode,
+    mount: config.mount,
+    source: config.source,
+    direction: config.direction,
     animated: tickerRuntime.isAnimated,
-    analyticsId: config.bannerAnalyticsId,
   });
 
   if (tickerRuntime.isAnimated) {
     emitBlockEvent(block, 'ticker-start', {
-      source: config.bannerTickerSource,
-      direction: config.bannerTickerDirection,
-      speed: config.bannerTickerSpeed,
-      analyticsId: config.bannerAnalyticsId,
+      source: config.source,
+      direction: config.direction,
+      speed: config.speed,
     });
   }
+
+  if (config.debug) {
+    runAutomatedChecks(block, config);
+  }
+  debugLog(config, 'decorate complete', {
+    mode: config.mode,
+    mount: config.mount,
+    layout: config.layout,
+    effectiveLayout,
+    typedRows: rowGroups.hasTyped,
+  });
 }
