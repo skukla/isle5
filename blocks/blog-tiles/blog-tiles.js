@@ -549,15 +549,26 @@ function renderTiles(grid, posts, config) {
 
   const [featured, ...remaining] = posts;
   const rest = config.sort === 'oldest' ? [...remaining].reverse() : remaining;
-  layout.append(createFeaturedTile(featured, config));
+  const top = document.createElement('div');
+  top.className = 'blog-tiles-top';
+  top.append(createFeaturedTile(featured, config));
 
-  if (rest.length) {
-    const list = document.createElement('div');
-    list.className = 'blog-tiles-list';
-    rest.forEach((post) => {
-      list.append(createTile(post, config));
+  const side = document.createElement('div');
+  side.className = 'blog-tiles-side';
+  rest.slice(0, 4).forEach((post) => {
+    side.append(createTile(post, config));
+  });
+  if (side.children.length) top.append(side);
+  layout.append(top);
+
+  const overflow = rest.slice(4);
+  if (overflow.length) {
+    const bottom = document.createElement('div');
+    bottom.className = 'blog-tiles-bottom';
+    overflow.forEach((post) => {
+      bottom.append(createTile(post, config));
     });
-    layout.append(list);
+    layout.append(bottom);
   }
 
   grid.append(layout);
