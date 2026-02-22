@@ -187,6 +187,10 @@
     "fields": []
   },
   {
+    "id": "blog-tiles",
+    "fields": []
+  },
+  {
     "id": "card",
     "fields": [
       {

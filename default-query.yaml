@@ -13,7 +13,7 @@ indices:
         value: |
           attribute(el, 'content')
       image:
-        select: head > meta[property="og:image"]
+        select: head > meta[name="image"], head > meta[property="og:image"]
         value: |
           attribute(el, 'content')
       description:
@@ -45,6 +45,10 @@ indices:
           attribute(el, 'content')
       author:
         select: head > meta[name="author"]
+        value: |
+          attribute(el, 'content')
+      authorimage:
+        select: head > meta[name="authorimage"]
         value: |
           attribute(el, 'content')
       category:

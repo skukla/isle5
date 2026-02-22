@@ -1,0 +1,22 @@
+{
+  "definitions": [
+    {
+      "title": "Blog Tiles",
+      "id": "blog-tiles",
+      "plugins": {
+        "da": {
+          "name": "blog-tiles",
+          "rows": 1,
+          "columns": 1
+        }
+      }
+    }
+  ],
+  "models": [
+    {
+      "id": "blog-tiles",
+      "fields": []
+    }
+  ],
+  "filters": []
+}
