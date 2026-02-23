@@ -188,6 +188,134 @@
               "unsafeHTML": "<div class=\"targeted-block\"><div><div><p>Customer Groups</p></div><div><p>Specify id's of customer groups the block is visible to</p></div></div><div><div><p>Customer Segments</p></div><div><p>Specify id's of customer segments the block is visible to</p></div></div><div><div><p>Type</p></div><div><p>Provide a custom name. If there are multiple targeted block of the same type on a page, only the first block of the type will be displayed</p></div></div><div><div><p>Fragment</p></div><div><p>Relative path to a fragment. If specified the block content will be replaced with fragment content</p></div></div><div><div><p>Targeted Block Content</p></div></div></div>"
             }
           }
+        },
+        {
+          "title": "Circle Carousel",
+          "id": "circle-carousel",
+          "plugins": {
+            "da": {
+              "name": "circle-carousel",
+              "rows": 8,
+              "columns": 2,
+              "behaviour": "columns"
+            }
+          },
+          "model": "circle-carousel",
+          "filter": "circle-carousel"
+        },
+        {
+          "title": "Circle Carousel Item",
+          "id": "circle-carousel-item",
+          "plugins": {
+            "da": {
+              "name": "circle-carousel-item",
+              "behaviour": "columns-row"
+            }
+          }
+        },
+        {
+          "title": "Circle Carousel Cell",
+          "id": "circle-carousel-cell",
+          "plugins": {
+            "da": {
+              "unsafeHTML": "<div></div>",
+              "behaviour": "columns-cell"
+            }
+          },
+          "filter": "circle-carousel-cell"
+        },
+        {
+          "title": "Hero CTA",
+          "id": "hero-cta",
+          "plugins": {
+            "da": {
+              "name": "hero-cta",
+              "rows": 8,
+              "columns": 4
+            }
+          }
+        },
+        {
+          "title": "Newsletter",
+          "id": "newsletter",
+          "plugins": {
+            "da": {
+              "name": "newsletter",
+              "rows": 8,
+              "columns": 1
+            }
+          },
+          "model": "newsletter"
+        },
+        {
+          "title": "Promotional Hero",
+          "id": "promotional-hero",
+          "plugins": {
+            "da": {
+              "name": "promotional-hero",
+              "rows": 3,
+              "columns": 3
+            }
+          }
+        },
+        {
+          "title": "Search Bar",
+          "id": "search-bar",
+          "plugins": {
+            "da": {
+              "name": "search-bar",
+              "rows": 3,
+              "columns": 1,
+              "behaviour": "columns"
+            }
+          },
+          "model": "search-bar"
+        },
+        {
+          "title": "Store Locator",
+          "id": "store-locator",
+          "plugins": {
+            "da": {
+              "name": "store-locator",
+              "rows": 20,
+              "columns": 6,
+              "behaviour": "columns"
+            }
+          },
+          "model": "store-locator",
+          "filter": "store-locator"
+        },
+        {
+          "title": "Store Locator Item",
+          "id": "store-locator-item",
+          "plugins": {
+            "da": {
+              "name": "store-locator-item",
+              "behaviour": "columns-row"
+            }
+          }
+        },
+        {
+          "title": "Store Locator Cell",
+          "id": "store-locator-cell",
+          "plugins": {
+            "da": {
+              "unsafeHTML": "<div></div>",
+              "behaviour": "columns-cell"
+            }
+          },
+          "filter": "store-locator-cell"
+        },
+        {
+          "title": "Top Banner",
+          "id": "top-banner",
+          "plugins": {
+            "da": {
+              "name": "top-banner",
+              "rows": 8,
+              "columns": 4
+            }
+          }
         }
       ]
     },

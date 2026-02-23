@@ -17,7 +17,14 @@
       "image",
       "text",
       "targeted-block",
-      "product-recommendations"
+      "product-recommendations",
+      "circle-carousel",
+      "hero-cta",
+      "newsletter",
+      "promotional-hero",
+      "search-bar",
+      "store-locator",
+      "top-banner"
     ]
   },
   {
