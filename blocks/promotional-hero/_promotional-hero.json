@@ -5,9 +5,7 @@
       "id": "promotional-hero",
       "plugins": {
         "da": {
-          "name": "promotional-hero",
-          "rows": 3,
-          "columns": 3
+          "unsafeHTML": "<div class=\"promotional-hero\"><div><div><picture><source type=\"image/webp\" srcset=\"\"><source type=\"image/jpeg\" srcset=\"\"><img loading=\"lazy\"></picture></div><div><h2></h2><p></p></div><div><p></p></div></div></div>"
         }
       }
     }

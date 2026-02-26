@@ -5,9 +5,7 @@
       "id": "top-banner",
       "plugins": {
         "da": {
-          "name": "top-banner",
-          "rows": 8,
-          "columns": 4
+          "unsafeHTML": "<div class=\"top-banner\"><div><div><p>Message</p></div><div><p></p></div><div><p></p></div><div><p></p></div></div></div>"
         }
       }
     }

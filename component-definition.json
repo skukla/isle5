@@ -52,9 +52,7 @@
                     "id": "accordion",
                     "plugins": {
                         "da": {
-                            "name": "accordion",
-                            "rows": 1,
-                            "columns": 2
+                            "unsafeHTML": "<div class=\"accordion\"><div><div><p>Question</p></div><div><p>Answer</p></div></div></div>"
                         }
                     }
                 },
@@ -63,9 +61,7 @@
                     "id": "accordion-item",
                     "plugins": {
                         "da": {
-                            "name": "accordion-item",
-                            "rows": 2,
-                            "columns": 0
+                            "unsafeHTML": "<div><div><p>Question</p></div><div><p>Answer</p></div></div>"
                         }
                     }
                 },
@@ -113,9 +109,7 @@
                     "id": "columns",
                     "plugins": {
                         "da": {
-                            "name": "columns",
-                            "rows": 1,
-                            "columns": 2,
+                            "unsafeHTML": "<div class=\"columns\"><div><div><p></p></div><div><p></p></div></div></div>",
                             "behaviour": "columns"
                         }
                     }
@@ -125,7 +119,7 @@
                     "id": "columns-row",
                     "plugins": {
                         "da": {
-                            "name": "columns-row",
+                            "unsafeHTML": "<div><div><p></p></div><div><p></p></div></div>",
                             "behaviour": "columns-row"
                         }
                     }
@@ -163,9 +157,7 @@
                     "id": "blog-list",
                     "plugins": {
                         "da": {
-                            "name": "blog-list",
-                            "rows": 1,
-                            "columns": 1
+                            "unsafeHTML": "<div class=\"blog-list\"><div><div><p>Category</p></div></div></div>"
                         }
                     }
                 },
@@ -174,9 +166,7 @@
                     "id": "blog-tiles",
                     "plugins": {
                         "da": {
-                            "name": "blog-tiles",
-                            "rows": 1,
-                            "columns": 1
+                            "unsafeHTML": "<div class=\"blog-tiles\"><div><div><p>Category</p></div></div></div>"
                         }
                     }
                 },
@@ -194,9 +184,7 @@
                     "id": "blog-post",
                     "plugins": {
                         "da": {
-                            "name": "blog-post",
-                            "rows": 1,
-                            "columns": 1
+                            "unsafeHTML": "<div class=\"blog-post\"><div><div><p>Layout</p></div></div></div>"
                         }
                     }
                 },
@@ -205,9 +193,7 @@
                     "id": "circle-carousel",
                     "plugins": {
                         "da": {
-                            "name": "circle-carousel",
-                            "rows": 8,
-                            "columns": 2,
+                            "unsafeHTML": "<div class=\"circle-carousel\"><div><div><picture><source type=\"image/webp\" srcset=\"\"><source type=\"image/jpeg\" srcset=\"\"><img loading=\"lazy\"></picture></div><div><p></p></div></div></div>",
                             "behaviour": "columns"
                         }
                     },
@@ -219,7 +205,7 @@
                     "id": "circle-carousel-item",
                     "plugins": {
                         "da": {
-                            "name": "circle-carousel-item",
+                            "unsafeHTML": "<div><div><picture><source type=\"image/webp\" srcset=\"\"><source type=\"image/jpeg\" srcset=\"\"><img loading=\"lazy\"></picture></div><div><p></p></div></div>",
                             "behaviour": "columns-row"
                         }
                     }
@@ -239,9 +225,7 @@
                     "id": "hero-cta",
                     "plugins": {
                         "da": {
-                            "name": "hero-cta",
-                            "rows": 8,
-                            "columns": 4
+                            "unsafeHTML": "<div class=\"hero-cta\"><div><div><picture><source type=\"image/webp\" srcset=\"\"><source type=\"image/jpeg\" srcset=\"\"><img loading=\"lazy\"></picture></div><div><h1></h1><p></p></div></div></div>"
                         }
                     }
                 },
@@ -250,9 +234,7 @@
                     "id": "newsletter",
                     "plugins": {
                         "da": {
-                            "name": "newsletter",
-                            "rows": 8,
-                            "columns": 1
+                            "unsafeHTML": "<div class=\"newsletter\"><div><div><p>Heading</p></div></div><div><div><p>Subheading</p></div></div></div>"
                         }
                     },
                     "model": "newsletter"
@@ -262,9 +244,7 @@
                     "id": "promotional-hero",
                     "plugins": {
                         "da": {
-                            "name": "promotional-hero",
-                            "rows": 3,
-                            "columns": 3
+                            "unsafeHTML": "<div class=\"promotional-hero\"><div><div><picture><source type=\"image/webp\" srcset=\"\"><source type=\"image/jpeg\" srcset=\"\"><img loading=\"lazy\"></picture></div><div><h2></h2><p></p></div><div><p></p></div></div></div>"
                         }
                     }
                 },
@@ -273,9 +253,7 @@
                     "id": "search-bar",
                     "plugins": {
                         "da": {
-                            "name": "search-bar",
-                            "rows": 3,
-                            "columns": 1,
+                            "unsafeHTML": "<div class=\"search-bar\"><div><div><p>Search Products</p></div></div></div>",
                             "behaviour": "columns"
                         }
                     },
@@ -287,9 +265,7 @@
                     "id": "store-locator",
                     "plugins": {
                         "da": {
-                            "name": "store-locator",
-                            "rows": 20,
-                            "columns": 6,
+                            "unsafeHTML": "<div class=\"store-locator\"><div><div><p>Store Name</p></div><div><p>Address</p></div><div><p>City</p></div><div><p>State</p></div><div><p>Zip</p></div><div><p>Phone</p></div></div></div>",
                             "behaviour": "columns"
                         }
                     },
@@ -301,7 +277,7 @@
                     "id": "store-locator-item",
                     "plugins": {
                         "da": {
-                            "name": "store-locator-item",
+                            "unsafeHTML": "<div><div><p>Store Name</p></div><div><p>Address</p></div><div><p>City</p></div><div><p>State</p></div><div><p>Zip</p></div><div><p>Phone</p></div></div>",
                             "behaviour": "columns-row"
                         }
                     }
@@ -321,9 +297,7 @@
                     "id": "top-banner",
                     "plugins": {
                         "da": {
-                            "name": "top-banner",
-                            "rows": 8,
-                            "columns": 4
+                            "unsafeHTML": "<div class=\"top-banner\"><div><div><p>Message</p></div><div><p></p></div><div><p></p></div><div><p></p></div></div></div>"
                         }
                     }
                 }

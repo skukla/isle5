@@ -5,9 +5,7 @@
       "id": "columns",
       "plugins": {
         "da": {
-          "name": "columns",
-          "rows": 1,
-          "columns": 2,
+          "unsafeHTML": "<div class=\"columns\"><div><div><p></p></div><div><p></p></div></div></div>",
           "behaviour": "columns"
         }
       }
@@ -17,7 +15,7 @@
       "id": "columns-row",
       "plugins": {
         "da": {
-          "name": "columns-row",
+          "unsafeHTML": "<div><div><p></p></div><div><p></p></div></div>",
           "behaviour": "columns-row"
         }
       }

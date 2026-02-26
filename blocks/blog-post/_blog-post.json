@@ -5,9 +5,7 @@
       "id": "blog-post",
       "plugins": {
         "da": {
-          "name": "blog-post",
-          "rows": 1,
-          "columns": 1
+          "unsafeHTML": "<div class=\"blog-post\"><div><div><p>Layout</p></div></div></div>"
         }
       }
     }

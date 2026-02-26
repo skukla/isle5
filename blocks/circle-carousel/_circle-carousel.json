@@ -5,9 +5,7 @@
       "id": "circle-carousel",
       "plugins": {
         "da": {
-          "name": "circle-carousel",
-          "rows": 8,
-          "columns": 2,
+          "unsafeHTML": "<div class=\"circle-carousel\"><div><div><picture><source type=\"image/webp\" srcset=\"\"><source type=\"image/jpeg\" srcset=\"\"><img loading=\"lazy\"></picture></div><div><p></p></div></div></div>",
           "behaviour": "columns"
         }
       }
@@ -17,7 +15,7 @@
       "id": "circle-carousel-item",
       "plugins": {
         "da": {
-          "name": "circle-carousel-item",
+          "unsafeHTML": "<div><div><picture><source type=\"image/webp\" srcset=\"\"><source type=\"image/jpeg\" srcset=\"\"><img loading=\"lazy\"></picture></div><div><p></p></div></div>",
           "behaviour": "columns-row"
         }
       }

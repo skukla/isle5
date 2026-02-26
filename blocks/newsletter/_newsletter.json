@@ -5,9 +5,7 @@
       "id": "newsletter",
       "plugins": {
         "da": {
-          "name": "newsletter",
-          "rows": 8,
-          "columns": 1
+          "unsafeHTML": "<div class=\"newsletter\"><div><div><p>Heading</p></div></div><div><div><p>Subheading</p></div></div></div>"
         }
       }
     }

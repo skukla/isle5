@@ -5,9 +5,7 @@
       "id": "store-locator",
       "plugins": {
         "da": {
-          "name": "store-locator",
-          "rows": 20,
-          "columns": 6,
+          "unsafeHTML": "<div class=\"store-locator\"><div><div><p>Store Name</p></div><div><p>Address</p></div><div><p>City</p></div><div><p>State</p></div><div><p>Zip</p></div><div><p>Phone</p></div></div></div>",
           "behaviour": "columns"
         }
       }
@@ -17,7 +15,7 @@
       "id": "store-locator-item",
       "plugins": {
         "da": {
-          "name": "store-locator-item",
+          "unsafeHTML": "<div><div><p>Store Name</p></div><div><p>Address</p></div><div><p>City</p></div><div><p>State</p></div><div><p>Zip</p></div><div><p>Phone</p></div></div>",
           "behaviour": "columns-row"
         }
       }
@@ -119,7 +117,14 @@
           "name": "servicesFilter",
           "label": "Available Service Filters",
           "description": "Services that users can filter stores by",
-          "value": ["pharmacy", "pickup", "delivery", "24-hour", "deli", "bakery"],
+          "value": [
+            "pharmacy",
+            "pickup",
+            "delivery",
+            "24-hour",
+            "deli",
+            "bakery"
+          ],
           "required": false,
           "options": [
             {

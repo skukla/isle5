@@ -5,9 +5,7 @@
       "id": "search-bar",
       "plugins": {
         "da": {
-          "name": "search-bar",
-          "rows": 3,
-          "columns": 1,
+          "unsafeHTML": "<div class=\"search-bar\"><div><div><p>Search Products</p></div></div></div>",
           "behaviour": "columns"
         }
       }

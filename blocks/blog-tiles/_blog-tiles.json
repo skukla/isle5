@@ -5,9 +5,7 @@
       "id": "blog-tiles",
       "plugins": {
         "da": {
-          "name": "blog-tiles",
-          "rows": 1,
-          "columns": 1
+          "unsafeHTML": "<div class=\"blog-tiles\"><div><div><p>Category</p></div></div></div>"
         }
       }
     }
